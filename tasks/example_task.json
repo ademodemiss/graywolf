@@ -1,0 +1,11 @@
+{
+  "goal": "demo",
+  "context": "x",
+  "constraints": [],
+  "acceptance_criteria": [
+    "ok"
+  ],
+  "evidence_requirements": [
+    "log"
+  ]
+}

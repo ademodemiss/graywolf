@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "gate": "warn",
+  "inputs": {
+    "triage": "/home/adem/graywolf/post_release/incident_triage.json",
+    "recovery": "/home/adem/graywolf/post_release/recovery_plan.json",
+    "slo": "/home/adem/graywolf/post_release/slo_report.json"
+  }
+}

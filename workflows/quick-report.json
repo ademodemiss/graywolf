@@ -1,0 +1,9 @@
+{
+  "name": "quick-report-workflow",
+  "continue_on_error": true,
+  "steps": [
+    {"name": "repo-list", "cmd": "ls -1 /home/adem/graywolf", "timeout": 15},
+    {"name": "last-log", "cmd": "python3 /home/adem/graywolf/tools/report_tool.py --last-log 5", "timeout": 15},
+    {"name": "mail-smtp-check", "cmd": "python3 /home/adem/graywolf/tools/mail_tool.py --action check-smtp", "timeout": 15}
+  ]
+}

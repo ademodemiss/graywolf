@@ -1,0 +1,15 @@
+{
+  "status": "warn",
+  "channels": [
+    {
+      "channel": "telegram",
+      "status": "skipped",
+      "reason": "missing_env"
+    },
+    {
+      "channel": "webhook",
+      "status": "skipped",
+      "reason": "missing_env"
+    }
+  ]
+}

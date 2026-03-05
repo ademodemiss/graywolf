@@ -1,0 +1,19 @@
+[
+  {
+    "task_id": "a18a32a2-3f46-492d-912b-d422cc4ce73b",
+    "command": "echo recovered-by-nodeB",
+    "status": "completed",
+    "node": "nodeB",
+    "attempts": 2,
+    "max_retry": 3,
+    "created_at": "2026-03-05T01:43:09.576450+00:00",
+    "started_at": "2026-03-05T01:43:10.780205+00:00",
+    "updated_at": "2026-03-05T01:43:10.784497+00:00",
+    "finished_at": "2026-03-05T01:43:10.784497+00:00",
+    "reason": "lease_expired_requeue",
+    "locked_by": null,
+    "locked_at": null,
+    "lease_timeout": 1,
+    "result": "recovered-by-nodeB"
+  }
+]

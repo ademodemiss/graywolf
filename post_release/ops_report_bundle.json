@@ -1,0 +1,344 @@
+{
+  "version": "v2",
+  "ts": "2026-03-05T17:57:09.820300+00:00",
+  "items": {
+    "incident_triage.json": {
+      "status": "ok",
+      "severity": "warning",
+      "actions": [
+        "review trend digest",
+        "verify delivery readiness"
+      ]
+    },
+    "recovery_plan.json": {
+      "status": "ok",
+      "severity": "warning",
+      "steps": [
+        "verify trend digest",
+        "run guarded restart recommendation"
+      ]
+    },
+    "slo_report.json": {
+      "status": "ok",
+      "compliance": "warn",
+      "heartbeat_status": "warn",
+      "anomaly_delta": 1
+    },
+    "release_gate_v2.json": {
+      "status": "ok",
+      "gate": "warn",
+      "inputs": {
+        "triage": "/home/adem/graywolf/post_release/incident_triage.json",
+        "recovery": "/home/adem/graywolf/post_release/recovery_plan.json",
+        "slo": "/home/adem/graywolf/post_release/slo_report.json"
+      }
+    },
+    "incident_timeline.json": {
+      "status": "ok",
+      "count": 120,
+      "events": [
+        {
+          "ts": "2026-03-05T13:51:01.195958+00:00",
+          "cmd": "python3 -m post_release.phase_smoke --phase 24 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:01.367744+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/phase_smoke.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:01.449886+00:00",
+          "cmd": "python3 -m post_release.phase_smoke --phase 25 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:01.652897+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/phase_smoke.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:01.723513+00:00",
+          "cmd": "python3 -m post_release.phase_smoke --phase 26 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:01.868805+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/health_server.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:02.057937+00:00",
+          "cmd": "python3 -m post_release.health_server --self-test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:02.933902+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/phase_smoke.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:03.093733+00:00",
+          "cmd": "python3 -m post_release.phase_smoke --phase 28 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:03.257922+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/phase_smoke.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:03.372512+00:00",
+          "cmd": "python3 -m post_release.phase_smoke --phase 29 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:03.542669+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/phase_smoke.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T13:51:03.636596+00:00",
+          "cmd": "python3 -m post_release.phase_smoke --phase 30 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T14:15:12.980621+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/service_snapshot.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T14:15:13.077941+00:00",
+          "cmd": "python3 -m post_release.service_snapshot --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T14:28:50.469772+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/guarded_restart.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T14:28:50.647794+00:00",
+          "cmd": "python3 -m post_release.guarded_restart --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:05:30.328801+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/journal_anomaly.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:05:30.435498+00:00",
+          "cmd": "python3 -m post_release.journal_anomaly --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:49:59.544833+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/ops_summary.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:49:59.624776+00:00",
+          "cmd": "python3 -m post_release.ops_summary --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:52:31.886883+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/artifact_retention.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:52:31.958214+00:00",
+          "cmd": "python3 -m post_release.artifact_retention --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:57:28.561562+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/heartbeat_snapshot.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T15:57:28.629603+00:00",
+          "cmd": "python3 -m post_release.heartbeat_snapshot --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T16:24:48.983024+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/trend_digest.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T16:24:49.093917+00:00",
+          "cmd": "python3 -m post_release.trend_digest --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:22:04.512607+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/delivery_readiness.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:22:04.675544+00:00",
+          "cmd": "python3 -m post_release.delivery_readiness --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:35:22.503354+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/delivery_payload.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:35:22.585344+00:00",
+          "cmd": "python3 -m post_release.delivery_payload --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:38:43.119277+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/delivery_dispatcher.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:38:43.184367+00:00",
+          "cmd": "python3 -m post_release.delivery_dispatcher --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:38.813749+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/incident_triage.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:38.906092+00:00",
+          "cmd": "python3 -m post_release.incident_triage --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:39.169351+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/recovery_playbook.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:39.251319+00:00",
+          "cmd": "python3 -m post_release.recovery_playbook --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:39.435860+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/slo_evaluator.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:39.504257+00:00",
+          "cmd": "python3 -m post_release.slo_evaluator --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:39.695095+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/release_gate_v2.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:50:39.758351+00:00",
+          "cmd": "python3 -m post_release.release_gate_v2 --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:07.899990+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/canary_gate.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:07.984017+00:00",
+          "cmd": "python3 -m post_release.canary_gate --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.134953+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/rollback_advisor.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.209445+00:00",
+          "cmd": "python3 -m post_release.rollback_advisor --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.402015+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/incident_timeline.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.497179+00:00",
+          "cmd": "python3 -m post_release.incident_timeline --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.652572+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/ops_packager.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.721544+00:00",
+          "cmd": "python3 -m post_release.ops_packager --test",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        },
+        {
+          "ts": "2026-03-05T17:57:08.973620+00:00",
+          "cmd": "python3 -m py_compile /home/adem/graywolf/post_release/regression_gate.py",
+          "exit_code": 0,
+          "decision": "ALLOW"
+        }
+      ]
+    }
+  },
+  "checksum_sha256": "0cc01bbc06603ca7421994d69dc3fa658b9c96d54f8a3cfffa983ffc93b9bc98"
+}

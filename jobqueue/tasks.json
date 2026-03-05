@@ -1,0 +1,23 @@
+[
+  {
+    "task_id": "3fc4409f-f651-44ca-b74c-a4631f4b61e7",
+    "command": "echo queue-test",
+    "status": "running",
+    "node": null,
+    "created_at": "2026-03-04T16:20:43.105896+00:00"
+  },
+  {
+    "task_id": "b9c325fd-d009-4aa4-ad8d-ea62d1d60274",
+    "command": "echo queue-test",
+    "status": "running",
+    "node": null,
+    "created_at": "2026-03-04T16:21:18.590190+00:00"
+  },
+  {
+    "task_id": "2205db12-33e7-4e3e-885c-8a937c9b1895",
+    "command": "echo queue-test",
+    "status": "completed",
+    "node": "node-local",
+    "created_at": "2026-03-04T16:22:02.090630+00:00"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "name": "sample-continue-on-error",
+  "continue_on_error": true,
+  "steps": [
+    {"name": "step1-ok", "cmd": "echo one"},
+    {"name": "step2-fail", "cmd": "git status"},
+    {"name": "step3-runs", "cmd": "echo three"}
+  ]
+}

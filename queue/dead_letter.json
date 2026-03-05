@@ -1,0 +1,16 @@
+[
+  {
+    "task_id": "bd3a7ff5-ee6a-459f-86b4-ee076d2058b5",
+    "command": "python3 -c \"import sys; sys.exit(1)\"",
+    "attempts": 3,
+    "reason": "max_retries_exceeded",
+    "ts": "2026-03-04T19:25:39.960992+00:00"
+  },
+  {
+    "task_id": "708f0b7e-b2c7-44eb-b7cc-5fd10586194f",
+    "command": "python3 -c \"import sys; sys.exit(1)\"",
+    "attempts": 3,
+    "reason": "max_retries_exceeded",
+    "ts": "2026-03-04T20:45:18.749103+00:00"
+  }
+]

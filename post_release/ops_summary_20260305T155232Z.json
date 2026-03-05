@@ -1,0 +1,90 @@
+{
+  "status": "warn",
+  "ops_monitor": {
+    "status": "ok",
+    "checks": [
+      {
+        "name": "disk_usage",
+        "status": "ok",
+        "value": 28.21,
+        "threshold": {
+          "warn_pct": 85.0,
+          "error_pct": 95.0
+        },
+        "details": {
+          "path": "/"
+        }
+      },
+      {
+        "name": "loadavg_1m",
+        "status": "ok",
+        "value": 0.093,
+        "threshold": {
+          "warn": 9.0,
+          "error": 15.0
+        },
+        "details": {
+          "cpu_count": 6
+        }
+      },
+      {
+        "name": "terminal_log_size_mb",
+        "status": "ok",
+        "value": 0.099,
+        "threshold": {
+          "warn_mb": 50.0,
+          "error_mb": 200.0
+        },
+        "details": {
+          "path": "/home/adem/graywolf/logs/terminal.log",
+          "exists": true
+        }
+      },
+      {
+        "name": "memory_usage",
+        "status": "ok",
+        "value": 11.1,
+        "threshold": {
+          "warn_pct": 85,
+          "error_pct": 95
+        },
+        "details": {
+          "source": "psutil",
+          "total": 12541509632,
+          "available": 11146305536
+        }
+      }
+    ]
+  },
+  "journal_anomaly": {
+    "status": "warn",
+    "total_anomalies": 1,
+    "counts": {
+      "error": 0,
+      "failed": 0,
+      "exception": 0,
+      "traceback": 0,
+      "denied": 0,
+      "blocked": 1
+    },
+    "scanned_lines": 80
+  },
+  "service_snapshot": {
+    "status": "ok",
+    "service": {
+      "is_active": "active",
+      "probe": {
+        "cmd": "systemctl is-active graywolf",
+        "exit_code": 0,
+        "stdout": "active",
+        "stderr": ""
+      }
+    },
+    "journal_tail": {
+      "cmd": "journalctl -u graywolf -n 10 --no-pager",
+      "exit_code": 0,
+      "stdout": "Mar 05 16:40:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:41:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:42:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:43:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:44:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:45:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:46:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:47:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:48:54 vmi3104912 python3[586473]: {\"status\": \"idle\", \"milestone\": null, \"reason\": \"no_incomplete_milestone\"}\nMar 05 16:49:54 vmi3104912 python3[586473]: {\"status\": \"blocked\", \"milestone\": \"Phase 34 — Ops Summary Bundle\", \"reason\": \"verification_plan_missing\"}",
+      "stderr": "Hint: You are currently not seeing messages from other users and the system.\n      Users in groups 'adm', 'systemd-journal' can see all messages.\n      Pass -q to turn off this notice."
+    }
+  }
+}

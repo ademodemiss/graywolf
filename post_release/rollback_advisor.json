@@ -1,0 +1,6 @@
+{
+  "status": "ok",
+  "severity": "warning",
+  "gate": "warn",
+  "recommended_action": "hold_and_monitor"
+}

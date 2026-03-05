@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "nodes": [
+    {
+      "id": "node-1",
+      "state": "active"
+    }
+  ]
+}

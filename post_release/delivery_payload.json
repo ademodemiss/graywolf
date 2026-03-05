@@ -1,0 +1,22 @@
+{
+  "ts": "2026-03-05T17:35:23.147923+00:00",
+  "level": "WARN",
+  "title": "GrayWolf Ops Delivery Probe",
+  "message": "ops_status=warn channels_ready=0",
+  "meta": {
+    "ops_status": "warn",
+    "channels": [
+      {
+        "channel": "telegram",
+        "status": "skipped",
+        "reason": "missing_env"
+      },
+      {
+        "channel": "webhook",
+        "status": "skipped",
+        "reason": "missing_env"
+      }
+    ],
+    "journal_total_anomalies": 1
+  }
+}

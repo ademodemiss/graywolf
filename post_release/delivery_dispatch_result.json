@@ -1,0 +1,40 @@
+{
+  "status": "ok",
+  "dispatch": {
+    "status": "ok",
+    "deliveries": [
+      {
+        "channel": "telegram",
+        "status": "delivery_skipped",
+        "reason": "missing_env"
+      },
+      {
+        "channel": "webhook",
+        "status": "delivery_skipped",
+        "reason": "missing_env"
+      }
+    ],
+    "payload": {
+      "level": "WARN",
+      "title": "GrayWolf Ops Delivery Probe",
+      "message": "ops_status=warn channels_ready=0",
+      "meta": {
+        "ops_status": "warn",
+        "channels": [
+          {
+            "channel": "telegram",
+            "status": "skipped",
+            "reason": "missing_env"
+          },
+          {
+            "channel": "webhook",
+            "status": "skipped",
+            "reason": "missing_env"
+          }
+        ],
+        "journal_total_anomalies": 1
+      }
+    }
+  },
+  "input_payload": "/home/adem/graywolf/post_release/delivery_payload.json"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "sample-workflow",
+  "steps": [
+    {"name": "echo", "cmd": "echo hello"}
+  ]
+}

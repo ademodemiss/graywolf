@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "final_gate": "warn",
+  "checklist": {
+    "release_gate_v2_present": true,
+    "post_release_modules_smoke": true,
+    "guarded_recovery_defined": true
+  }
+}

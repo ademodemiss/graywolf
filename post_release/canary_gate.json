@@ -1,0 +1,6 @@
+{
+  "status": "ok",
+  "gate": "warn",
+  "allow_canary": true,
+  "recommended_scope": "small"
+}

@@ -1,0 +1,7 @@
+{
+  "status": "ok",
+  "patterns": [
+    "io_contention",
+    "restart_recovery"
+  ]
+}

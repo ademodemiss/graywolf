@@ -1,0 +1,8 @@
+{
+  "status": "ok",
+  "severity": "warning",
+  "actions": [
+    "review trend digest",
+    "verify delivery readiness"
+  ]
+}

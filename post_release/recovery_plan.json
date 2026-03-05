@@ -1,0 +1,8 @@
+{
+  "status": "ok",
+  "severity": "warning",
+  "steps": [
+    "verify trend digest",
+    "run guarded restart recommendation"
+  ]
+}

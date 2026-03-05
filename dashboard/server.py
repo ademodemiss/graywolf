@@ -1,0 +1,57 @@
+import argparse
+import json
+
+from dashboard.data import build_status_payload
+from dashboard.views import index_context
+
+
+def run_test_mode() -> int:
+    payload = build_status_payload()
+    required = {"agent_status", "idle", "idle_minutes", "last_log_ts", "errors_24h", "last_logs", "last_workflows"}
+    if not required.issubset(set(payload.keys())):
+        print("dashboard_test_failed")
+        return 1
+    print("dashboard_test_ok")
+    print(json.dumps(payload, ensure_ascii=False)[:500])
+    return 0
+
+
+def create_app():
+    from fastapi import FastAPI, Request
+    from fastapi.responses import JSONResponse
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.templating import Jinja2Templates
+
+    app = FastAPI(title="GrayWolf Dashboard")
+    templates = Jinja2Templates(directory="/home/adem/graywolf/dashboard/templates")
+    app.mount("/static", StaticFiles(directory="/home/adem/graywolf/dashboard/static"), name="static")
+
+    @app.get("/")
+    def index(request: Request):
+        return templates.TemplateResponse("index.html", {"request": request, **index_context()})
+
+    @app.get("/api/status")
+    def api_status():
+        return JSONResponse(build_status_payload())
+
+    return app
+
+
+def main():
+    parser = argparse.ArgumentParser(description="GrayWolf dashboard server")
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8787)
+    parser.add_argument("--test", action="store_true")
+    args = parser.parse_args()
+
+    if args.test:
+        raise SystemExit(run_test_mode())
+
+    app = create_app()
+    import uvicorn
+
+    uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

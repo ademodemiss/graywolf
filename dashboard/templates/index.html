@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrayWolf Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <h1>GrayWolf Durum Paneli</h1>
+  <div id="summary"></div>
+
+  <h2>Son 20 Log</h2>
+  <pre id="logs"></pre>
+
+  <h2>Son 10 Workflow</h2>
+  <pre id="workflows"></pre>
+
+  <script>
+    async function loadStatus() {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+      document.getElementById('summary').innerText =
+        `agent: ${d.agent_status} | idle: ${d.idle} (${d.idle_minutes} dk) | errors_24h: ${d.errors_24h} | last_log: ${d.last_log_ts}`;
+      document.getElementById('logs').innerText = JSON.stringify(d.last_logs, null, 2);
+      document.getElementById('workflows').innerText = JSON.stringify(d.last_workflows, null, 2);
+    }
+    loadStatus();
+    setInterval(loadStatus, 15000);
+  </script>
+</body>
+</html>

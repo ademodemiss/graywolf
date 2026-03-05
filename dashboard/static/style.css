@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; margin: 24px; background: #0b1220; color: #eaf0ff; }
+h1, h2 { color: #9ec1ff; }
+#summary { padding: 12px; background: #13203a; border-radius: 8px; margin-bottom: 16px; }
+pre { background: #13203a; padding: 12px; border-radius: 8px; overflow: auto; max-height: 320px; }

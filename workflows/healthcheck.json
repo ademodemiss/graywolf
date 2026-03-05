@@ -1,0 +1,10 @@
+{
+  "name": "healthcheck-workflow",
+  "continue_on_error": true,
+  "steps": [
+    {"name": "check-pwd", "cmd": "pwd", "timeout": 10},
+    {"name": "check-python", "cmd": "python3 --version", "timeout": 10},
+    {"name": "check-pip", "cmd": "pip --version", "timeout": 15},
+    {"name": "check-policy-deny", "cmd": "rm -rf /", "timeout": 10, "continue_on_error": true}
+  ]
+}
