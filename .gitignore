@@ -1,26 +1,10 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Virtualenv
 venv/
 .venv/
-
-# Logs / runtime artifacts
-logs/
+__pycache__/
+*.pyc
 *.log
-
-# Local memory/state (istersen takip etmeyelim)
+logs/
+tmp/
+backups/
+reports/*.json
 memory/
-post_release/*_latest.json
-post_release/*_report.json
-post_release/*_snapshot*.json
-reports/
-.config/graywolf/secrets.env
-.config/graywolf/secrets.env

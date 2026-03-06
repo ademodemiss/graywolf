@@ -1,0 +1,7 @@
+{
+  "ts": "2026-03-05T15:57:28.773919+00:00",
+  "status": "warn",
+  "journal_total_anomalies": 1,
+  "service_state": "active",
+  "checks": 4
+}

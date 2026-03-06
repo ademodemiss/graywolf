@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "keep": 3,
+  "removed_count": 0,
+  "removed": [],
+  "remaining_count": 3,
+  "remaining": [
+    "/home/adem/graywolf/post_release/ops_summary_20260305T155232Z.json",
+    "/home/adem/graywolf/post_release/ops_summary_20260305T213907Z.json",
+    "/home/adem/graywolf/post_release/ops_summary_latest.json"
+  ]
+}
