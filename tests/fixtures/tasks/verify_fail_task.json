@@ -1,0 +1,9 @@
+{
+  "id": "TASK-VERIFY-FAIL",
+  "title": "Verify fail fixture",
+  "goal": "Force verification failure",
+  "scope": ["coding/semantic_search.py"],
+  "verification_commands": [
+    "python3 -m py_compile coding/does_not_exist.py"
+  ]
+}

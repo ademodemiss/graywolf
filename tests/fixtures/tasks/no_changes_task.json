@@ -1,0 +1,9 @@
+{
+  "id": "TASK-NO-CHANGES",
+  "title": "No changes fixture",
+  "goal": "Verification passes but no diff should exist",
+  "scope": ["coding/semantic_search.py"],
+  "verification_commands": [
+    "python3 -m py_compile coding/semantic_search.py"
+  ]
+}

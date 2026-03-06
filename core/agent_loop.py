@@ -7,6 +7,7 @@ from pathlib import Path
 
 from policies.shell_policy import ShellPolicy
 from tools.terminal_tool import TerminalTool
+from core.idle_seed import seed_next_batch_if_idle
 
 ROADMAP = Path('/home/adem/graywolf/docs/roadmap.md')
 STATE = Path('/home/adem/graywolf/memory/agent_loop_state.json')
@@ -50,6 +51,205 @@ class AgentLoop:
         phase_no = int(m.group(1)) if m else 0
 
         plans = {
+
+            221: {
+                'files': ['/home/adem/graywolf/post_release/ops_summary.py'],
+                'tests': ['python3 -m post_release.ops_summary --test'],
+            },
+            222: {
+                'files': ['/home/adem/graywolf/post_release/service_snapshot.py'],
+                'tests': ['python3 -m post_release.service_snapshot --test'],
+            },
+            223: {
+                'files': ['/home/adem/graywolf/post_release/journal_anomaly.py'],
+                'tests': ['python3 -m post_release.journal_anomaly --test'],
+            },
+            224: {
+                'files': ['/home/adem/graywolf/post_release/heartbeat_snapshot.py'],
+                'tests': ['python3 -m post_release.heartbeat_snapshot --test'],
+            },
+            225: {
+                'files': ['/home/adem/graywolf/post_release/artifact_retention.py'],
+                'tests': ['python3 -m post_release.artifact_retention --test'],
+            },
+            226: {
+                'files': [
+                    '/home/adem/graywolf/core/task_generator.py',
+                    '/home/adem/graywolf/core/idle_seed.py',
+                    '/home/adem/graywolf/core/service_runner.py',
+                    '/home/adem/graywolf/core/task_runner.py',
+                    '/home/adem/graywolf/tasks/examples/fix_semantic_search.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/task_generator.py /home/adem/graywolf/core/idle_seed.py /home/adem/graywolf/core/service_runner.py',
+                    'python3 -m core.task_generator --test',
+                    'python3 -m core.idle_seed --once --cooldown 0',
+                    'python3 -m core.service_runner --help',
+                    'python3 -m core.task_runner --test --task /home/adem/graywolf/tasks/examples/fix_semantic_search.json',
+                ],
+            },
+            227: {
+                'files': ['/home/adem/graywolf/core/task_runner_v2.py'],
+                'tests': ['python3 -m core.task_runner_v2 --test --task /home/adem/graywolf/tasks/examples/fix_semantic_search.json'],
+            },
+            228: {
+                'files': ['/home/adem/graywolf/core/git_task_commit.py'],
+                'tests': ['python3 -m core.git_task_commit --test'],
+            },
+            229: {
+                'files': ['/home/adem/graywolf/reports/real_task_cert_v2.py'],
+                'tests': ['python3 -m reports.real_task_cert_v2 --test'],
+            },
+            230: {
+                'files': ['/home/adem/graywolf/core/git_task_commit.py'],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/git_task_commit.py',
+                    'python3 -m core.git_task_commit --test',
+                    'python3 -m core.task_runner_v2 --test --task /home/adem/graywolf/tasks/examples/fix_semantic_search.json',
+                    'python3 -m reports.real_task_cert_v2 --test',
+                    'python3 -m core.git_task_commit --task /home/adem/graywolf/tasks/examples/fix_semantic_search.json --dry-run',
+                    'python3 -m core.git_task_commit --task /home/adem/graywolf/tasks/examples/fix_semantic_search.json',
+                ],
+            },
+            231: {
+                'files': ['/home/adem/graywolf/core/task_replay.py'],
+                'tests': ['python3 -m core.task_replay --test --task /home/adem/graywolf/tasks/examples/fix_semantic_search.json'],
+            },
+            232: {
+                'files': ['/home/adem/graywolf/core/task_queue_runner.py'],
+                'tests': ['python3 -m core.task_queue_runner --test'],
+            },
+            233: {
+                'files': [
+                    '/home/adem/graywolf/core/git_task_commit.py',
+                    '/home/adem/graywolf/core/task_scope.py',
+                    '/home/adem/graywolf/tasks/examples/fix_semantic_search_scope_violation.json',
+                    '/home/adem/graywolf/reports/task_diff_aware_commit_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/git_task_commit.py /home/adem/graywolf/core/task_scope.py',
+                    'python3 -m core.git_task_commit --test',
+                    'python3 -m core.git_task_commit --task /home/adem/graywolf/tasks/examples/fix_semantic_search_scope_violation.json',
+                ],
+            },
+            234: {
+                'files': [
+                    '/home/adem/graywolf/tests/test_verify_fail_guardrails.py',
+                    '/home/adem/graywolf/reports/verify_fail_guardrail.py',
+                    '/home/adem/graywolf/tests/fixtures/tasks/verify_fail_task.json',
+                    '/home/adem/graywolf/tests/fixtures/tasks/no_changes_task.json',
+                    '/home/adem/graywolf/tests/fixtures/tasks/replay_mismatch_task.json',
+                    '/home/adem/graywolf/reports/verify_fail_guardrail_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/tests/test_verify_fail_guardrails.py /home/adem/graywolf/reports/verify_fail_guardrail.py',
+                    'python3 -m tests.test_verify_fail_guardrails',
+                    'python3 -m reports.verify_fail_guardrail',
+                ],
+            },
+            235: {
+                'files': [
+                    '/home/adem/graywolf/core/evidence_integrity.py',
+                    '/home/adem/graywolf/reports/evidence_integrity_chain_report.json',
+                    '/home/adem/graywolf/reports/evidence_chain.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/evidence_integrity.py',
+                    'python3 -m core.evidence_integrity --test',
+                    'python3 -m core.evidence_integrity --verify',
+                ],
+            },
+            236: {
+                'files': [
+                    '/home/adem/graywolf/core/task_worktree.py',
+                    '/home/adem/graywolf/reports/task_worktree_execution_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/task_worktree.py',
+                    'python3 -m core.task_worktree --test',
+                ],
+            },
+            237: {
+                'files': [
+                    '/home/adem/graywolf/core/task_lock.py',
+                    '/home/adem/graywolf/reports/task_locking_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/task_lock.py',
+                    'python3 -m core.task_lock --test',
+                ],
+            },
+            238: {
+                'files': [
+                    '/home/adem/graywolf/core/task_recovery.py',
+                    '/home/adem/graywolf/reports/task_recovery_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/task_recovery.py',
+                    'python3 -m core.task_recovery --test',
+                ],
+            },
+            239: {
+                'files': [
+                    '/home/adem/graywolf/core/patch_provenance.py',
+                    '/home/adem/graywolf/reports/patch_provenance_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/patch_provenance.py',
+                    'python3 -m core.patch_provenance --test',
+                ],
+            },
+            240: {
+                'files': [
+                    '/home/adem/graywolf/core/branch_lifecycle.py',
+                    '/home/adem/graywolf/reports/branch_lifecycle_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/branch_lifecycle.py',
+                    'python3 -m core.branch_lifecycle --test',
+                ],
+            },
+            241: {
+                'files': [
+                    '/home/adem/graywolf/core/task_budget.py',
+                    '/home/adem/graywolf/reports/task_budget_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/task_budget.py',
+                    'python3 -m core.task_budget --test',
+                ],
+            },
+            242: {
+                'files': [
+                    '/home/adem/graywolf/core/task_risk.py',
+                    '/home/adem/graywolf/reports/task_risk_gate_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/task_risk.py',
+                    'python3 -m core.task_risk --test',
+                ],
+            },
+            243: {
+                'files': [
+                    '/home/adem/graywolf/core/artifact_index.py',
+                    '/home/adem/graywolf/reports/artifact_index.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/artifact_index.py',
+                    'python3 -m core.artifact_index --test',
+                    'python3 -m core.artifact_index --test --query TASK-001',
+                ],
+            },
+            244: {
+                'files': [
+                    '/home/adem/graywolf/core/change_impact.py',
+                    '/home/adem/graywolf/reports/change_impact_report.json',
+                ],
+                'tests': [
+                    'python3 -m py_compile /home/adem/graywolf/core/change_impact.py',
+                    'python3 -m core.change_impact --test',
+                ],
+            },
             8: {
                 'files': [
                     '/home/adem/graywolf/workflow_engine/branch_executor.py',
@@ -121,120 +321,11 @@ class AgentLoop:
                     '/home/adem/graywolf/post_release/alerts.py',
                     '/home/adem/graywolf/post_release/ops_smoke.py',
                 ],
-                'tests': ['python3 -m post_release.ops_smoke --test'],
+                'tests': [
+                    'python3 -m post_release.ops_smoke --test',
+                ],
             },
-            23: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 23 --test'],
-            },
-            24: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 24 --test'],
-            },
-            25: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 25 --test'],
-            },
-            26: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 26 --test'],
-            },
-            27: {
-                'files': ['/home/adem/graywolf/post_release/health_server.py'],
-                'tests': ['python3 -m post_release.health_server --self-test'],
-            },
-            28: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 28 --test'],
-            },
-            29: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 29 --test'],
-            },
-            30: {
-                'files': ['/home/adem/graywolf/post_release/phase_smoke.py'],
-                'tests': ['python3 -m post_release.phase_smoke --phase 30 --test'],
-            },
-            31: {
-                'files': ['/home/adem/graywolf/post_release/service_snapshot.py'],
-                'tests': ['python3 -m post_release.service_snapshot --test'],
-            },
-            32: {
-                'files': ['/home/adem/graywolf/post_release/guarded_restart.py'],
-                'tests': ['python3 -m post_release.guarded_restart --test'],
-            },
-            33: {
-                'files': ['/home/adem/graywolf/post_release/journal_anomaly.py'],
-                'tests': ['python3 -m post_release.journal_anomaly --test'],
-            },
-            34: {
-                'files': ['/home/adem/graywolf/post_release/ops_summary.py'],
-                'tests': ['python3 -m post_release.ops_summary --test'],
-            },
-            35: {
-                'files': ['/home/adem/graywolf/post_release/artifact_retention.py'],
-                'tests': ['python3 -m post_release.artifact_retention --test'],
-            },
-            36: {
-                'files': ['/home/adem/graywolf/post_release/heartbeat_snapshot.py'],
-                'tests': ['python3 -m post_release.heartbeat_snapshot --test'],
-            },
-            37: {
-                'files': ['/home/adem/graywolf/post_release/trend_digest.py'],
-                'tests': ['python3 -m post_release.trend_digest --test'],
-            },
-            38: {
-                'files': ['/home/adem/graywolf/post_release/delivery_readiness.py'],
-                'tests': ['python3 -m post_release.delivery_readiness --test'],
-            },
-            39: {
-                'files': ['/home/adem/graywolf/post_release/delivery_payload.py'],
-                'tests': ['python3 -m post_release.delivery_payload --test'],
-            },
-            40: {
-                'files': ['/home/adem/graywolf/post_release/delivery_dispatcher.py'],
-                'tests': ['python3 -m post_release.delivery_dispatcher --test'],
-            },
-            41: {
-                'files': ['/home/adem/graywolf/post_release/incident_triage.py'],
-                'tests': ['python3 -m post_release.incident_triage --test'],
-            },
-            42: {
-                'files': ['/home/adem/graywolf/post_release/recovery_playbook.py'],
-                'tests': ['python3 -m post_release.recovery_playbook --test'],
-            },
-            43: {
-                'files': ['/home/adem/graywolf/post_release/slo_evaluator.py'],
-                'tests': ['python3 -m post_release.slo_evaluator --test'],
-            },
-            44: {
-                'files': ['/home/adem/graywolf/post_release/release_gate_v2.py'],
-                'tests': ['python3 -m post_release.release_gate_v2 --test'],
-            },
-            45: {
-                'files': ['/home/adem/graywolf/post_release/canary_gate.py'],
-                'tests': ['python3 -m post_release.canary_gate --test'],
-            },
-            46: {
-                'files': ['/home/adem/graywolf/post_release/rollback_advisor.py'],
-                'tests': ['python3 -m post_release.rollback_advisor --test'],
-            },
-            47: {
-                'files': ['/home/adem/graywolf/post_release/incident_timeline.py'],
-                'tests': ['python3 -m post_release.incident_timeline --test'],
-            },
-            48: {
-                'files': ['/home/adem/graywolf/post_release/ops_packager.py'],
-                'tests': ['python3 -m post_release.ops_packager --test'],
-            },
-            49: {
-                'files': ['/home/adem/graywolf/post_release/regression_gate.py'],
-                'tests': ['python3 -m post_release.regression_gate --test'],
-            },
-            50: {
-                'files': ['/home/adem/graywolf/post_release/production_readiness.py'],
-                'tests': ['python3 -m post_release.production_readiness --test'],
-            },
+
             51: {
                 'files': ['/home/adem/graywolf/post_release/backup_engine.py'],
                 'tests': ['python3 -m post_release.backup_engine --test'],
@@ -769,7 +860,22 @@ class AgentLoop:
             candidates.append((m, m_norm))
 
         if not candidates:
-            return {'milestone': None, 'reason': 'no_incomplete_milestone'}
+            # idle-seed: if roadmap has no incomplete phases, append next ops-cycle phases (221+)
+            try:
+                seed_next_batch_if_idle(batch_size=5)
+            except Exception:
+                pass
+            phases = self._parse_roadmap_phases()
+            candidates = []
+            for m in phases:
+                if '✅' in m:
+                    continue
+                m_norm = normalize_milestone(m)
+                if m_norm in completed_norm:
+                    continue
+                candidates.append((m, m_norm))
+            if not candidates:
+                return {'milestone': None, 'reason': 'no_incomplete_milestone'}
 
         selected, selected_norm = candidates[0]
         last_norm = st.get('last_selected_norm')

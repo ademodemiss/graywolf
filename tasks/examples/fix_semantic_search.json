@@ -1,0 +1,18 @@
+{
+  "id": "TASK-001",
+  "title": "Fix semantic search module import",
+  "goal": "Ensure coding/semantic_search.py compiles without error",
+  "scope": [
+    "coding/semantic_search.py"
+  ],
+  "verification_commands": [
+    "python3 -m py_compile coding/semantic_search.py"
+  ],
+  "acceptance": [
+    "py_compile succeeds"
+  ],
+  "evidence_required": [
+    "terminal.log entry",
+    "exit_code 0"
+  ]
+}

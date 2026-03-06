@@ -2222,3 +2222,166 @@
 - goal-plan-execute-fix-learn-report certification
 - final certification artifact output
 - proof-gated smoke test
+
+## Phase 221 — Ops Cycle — Summary Snapshot ✅
+- generate ops summary JSON
+- validate anomaly signals
+- store artifact under post_release/
+## Phase 222 — Ops Cycle — Service Runtime Snapshot ✅
+- snapshot systemd service status + journal tail
+- store artifact under post_release/
+## Phase 223 — Ops Cycle — Journal Anomaly Scan ✅
+- scan journal for anomalies
+- produce anomaly report JSON
+## Phase 224 — Ops Cycle — Heartbeat Snapshot ✅
+- heartbeat snapshot JSON
+- validate warn/error policy
+## Phase 225 — Ops Cycle — Artifact Retention Report ✅
+- rotate/cleanup ops artifacts
+- emit retention report JSON
+## Phase 226 — Task Execution Pipeline MVP ✅
+- task definition via `tasks/examples/*.json`
+- task runner executes verification commands
+- evidence artifact generation under `reports/`
+- proof-gated smoke test
+## Phase 227 — Task Runner v2 ✅
+- task -> plan -> apply -> verify pipeline
+- retry policy + verification integration
+- task execution report JSON
+- proof-gated smoke test
+
+## Phase 228 — Git Integration for Tasks ✅
+- task branch + commit helper
+- commit message template + evidence pointer
+- git integration report JSON
+- proof-gated smoke test
+
+## Phase 229 — Real Task Certification v2 ✅
+- TASK-001 end-to-end validation
+- verify + evidence + git snapshot checks
+- certification artifact JSON
+- proof-gated smoke test
+
+## Phase 230 — Task Pipeline Git Commit Mode ✅
+- task branch helper + auto-commit flow
+- commit message template with evidence link
+- commit mode report JSON
+- proof-gated smoke test
+
+## Phase 231 — Task Replay Engine ✅
+- deterministic task replay runner
+- replay diff summary output
+- replay evidence JSON
+- proof-gated smoke test
+
+## Phase 232 — Multi-Task Queue Runner ✅
+- sequential multi-task batch runner
+- merged evidence pack output
+- queue runner summary JSON
+- proof-gated smoke test
+## Phase 233 — Task Diff-Aware Commit ✅
+- Goal: Scope-bazlı explicit staging + dirty tree/pre-staged/untracked guard
+- Deliverables: core/git_task_commit.py hardening, core/task_scope.py, reports/task_diff_aware_commit_report.json, tasks/examples fixtures
+- Proof: py_compile + module tests + scope violation run + report validation
+- Done when: verify fail/no_changes/scope violation durumlarında commit üretilmez, evidence staged/blocked/decision içerir
+
+## Phase 234 — Verify-Fail Guardrail Test Suite ✅
+- Goal: Negatif senaryolarda commit/complete kaçağını engellemek
+- Deliverables: tests/test_verify_fail_guardrails.py, tests/fixtures/tasks/*, reports/verify_fail_guardrail_report.json
+- Proof: test suite + report
+- Done when: verify fail/apply fail/dirty/scope violation/no_changes/replay mismatch guardları geçer
+
+## Phase 235 — Evidence Integrity Chain ✅
+- Goal: Tamper-evident evidence hash zinciri
+- Deliverables: core/evidence_integrity.py, reports/evidence_integrity_chain_report.json
+- Proof: deterministic hash + tamper detection tests
+- Done when: chain verify kırık zincirde fail döner
+
+## Phase 236 — Isolated Worktree Execution ✅
+- Goal: Task çalıştırmalarını izole worktree’de yürütmek
+- Deliverables: core/task_worktree.py, git_task_commit entegrasyonu, reports/task_worktree_execution_report.json
+- Proof: worktree run + cleanup kanıtı
+- Done when: ana repo kirlenmeden task koşar
+
+## Phase 237 — Task Locking & Concurrency Guard ✅
+- Goal: Aynı task/branch çakışmasını engellemek
+- Deliverables: core/task_lock.py, lock policy, reports/task_locking_report.json
+- Proof: concurrent run blocked testi
+- Done when: lock_owner/lock_acquired evidence’e yazılır
+
+## Phase 238 — Rollback Preview & Recovery Hooks ✅
+- Goal: Commit öncesi/sonrası kontrollü recovery planı
+- Deliverables: core/task_recovery.py, reports/task_recovery_report.json
+- Proof: no_changes ve verify fail senaryoları
+- Done when: commitli akışta revert/cleanup planı üretilir
+
+## Phase 239 — Patch Provenance Tracker ✅
+- Goal: Task->changed_files->diffstat izlenebilirliği
+- Deliverables: core/patch_provenance.py, reports/patch_provenance_report.json
+- Proof: commit/task provenance report
+- Done when: evidence linkleri korunur
+
+## Phase 240 — Branch Lifecycle Manager ✅
+- Goal: Deterministic branch lifecycle + collision handling
+- Deliverables: core/branch_lifecycle.py, integration, reports/branch_lifecycle_report.json
+- Proof: collision/fallback tests
+- Done when: merged/closed/abandoned modeli raporlanır
+
+## Phase 241 — Task Budget & Timeout Controller ✅
+- Goal: Komut timeout/retry/toplam bütçe kontrolü
+- Deliverables: core/task_budget.py, task_runner_v2 integration, reports/task_budget_report.json
+- Proof: timeout kill + budget_exceeded tests
+- Done when: duration/attempt/timeout evidence’e yazılır
+
+## Phase 242 — Risk Classifier + Permission Gates ✅
+- Goal: low/medium/high risk ve gate uygulaması
+- Deliverables: core/task_risk.py, task risk fields, reports/task_risk_gate_report.json
+- Proof: high-risk gate tests
+- Done when: high risk task auto commit/publish yapmaz
+
+## Phase 243 — Artifact Index & Query CLI ✅
+- Goal: Evidence/report index ve sorgu CLI
+- Deliverables: core/artifact_index.py, reports/artifact_index_report.json
+- Proof: query by task/phase/final_status tests\n- Done when: artifact lookup deterministik çalışır
+
+## Phase 244 — Change Impact Scanner ✅
+- Goal: Değişikliğin etki yayılımını özetlemek
+- Deliverables: core/change_impact.py, reports/change_impact_report.json
+- Proof: changed files impact scan
+- Done when: yüksek yayılım risk flag üretilir
+
+## Phase 245 — Release Candidate Task Packager
+- Goal: Task+commit+evidence ile RC manifest üretimi
+- Deliverables: core/rc_packager.py, reports/release_candidate_packager_report.json
+- Proof: deterministic manifest tests
+- Done when: eksik artifact varsa fail döner
+
+## Phase 246 — PR Bundle Generator
+- Goal: PR-benzeri özet paket üretimi
+- Deliverables: core/pr_bundle.py, reports/pr_bundle_report.json
+- Proof: summary/risks/verify/evidence bundle output
+- Done when: tek artifact okunabilir formatta üretilir
+
+## Phase 247 — Human Approval Gate
+- Goal: High-risk akışlarda insan onay kapısı
+- Deliverables: core/human_gate.py, reports/human_approval_gate_report.json
+- Proof: no-approval block test
+- Done when: approval state evidence’e kaydedilir
+
+## Phase 248 — Production Readiness Checklist Engine
+- Goal: Yayın öncesi readiness checklist motoru
+- Deliverables: core/prod_checklist.py, reports/production_readiness_report.json
+- Proof: checklist fail/pass senaryoları
+- Done when: eksik madde varsa ready=false döner
+
+## Phase 249 — Autonomous Sprint Report
+- Goal: 233–248 çıktılarından otomatik sprint özeti
+- Deliverables: reports/autonomous_sprint_report.json (+ optional md)
+- Proof: report completeness checks
+- Done when: risk/failure/artifact/open debt alanları dolu olur
+
+## Phase 250 — Self-Audit & Stability Certification
+- Goal: Zincir güvenilirlik self-audit + stability cert
+- Deliverables: reports/self_audit_stability_cert.json, audit module/cli
+- Proof: anti-fake completion kontrolleri
+- Done when: stable/unstable/partially_stable sonucu ve bulgular üretilir

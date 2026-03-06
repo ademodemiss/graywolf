@@ -22,3 +22,5 @@ post_release/*_latest.json
 post_release/*_report.json
 post_release/*_snapshot*.json
 reports/
+.config/graywolf/secrets.env
+.config/graywolf/secrets.env

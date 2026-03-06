@@ -1,0 +1,18 @@
+{
+  "id": "TASK-001-SCOPE-VIOLATION",
+  "title": "Semantic search task with strict scope",
+  "goal": "Ensure scope guard blocks unrelated changes",
+  "scope": [
+    "coding/semantic_search.py"
+  ],
+  "verification_commands": [
+    "python3 -m py_compile coding/semantic_search.py"
+  ],
+  "acceptance": [
+    "scope violation blocks commit"
+  ],
+  "evidence_required": [
+    "blocked_files list",
+    "decision field"
+  ]
+}

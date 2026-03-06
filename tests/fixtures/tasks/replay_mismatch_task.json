@@ -1,0 +1,7 @@
+{
+  "id": "TASK-REPLAY-MISMATCH",
+  "title": "Replay mismatch fixture",
+  "goal": "Replay mismatch should be flagged",
+  "scope": ["coding/semantic_search.py"],
+  "verification_commands": []
+}
