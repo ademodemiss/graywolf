@@ -78,3 +78,27 @@ python3 /home/adem/graywolf/tools/mail_tool.py --action test-smtp
 ### 4) Güvenlik notu
 - Secret değerleri (API key, SMTP_PASS, token) chat/log içine düz metin olarak yazmayın.
 - Key/password değişiminde eski değeri iptal edin (rotate).
+
+## Installation
+
+To set up GrayWolf locally:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-repo/graywolf.git
+    cd graywolf
+    ```
+
+2.  **Create a virtual environment:**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **OpenClaw Integration:**
+    Ensure OpenClaw Gateway is running and connected.
