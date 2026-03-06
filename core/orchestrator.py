@@ -23,6 +23,10 @@ class Orchestrator:
         self.backoff_seconds = backoff_seconds
 
     @staticmethod
+    def safe_sleep(seconds: float):
+        time.sleep(seconds)
+
+    @staticmethod
     def classify_error(error: Exception) -> str:
         msg = str(error).lower()
         if "api key" in msg or "auth" in msg or "token" in msg:
@@ -53,7 +57,7 @@ class Orchestrator:
                 if category in {"auth_error", "unknown_error"}:
                     break
                 if attempt < self.max_retries:
-                    time.sleep(self.backoff_seconds * (2 ** attempt))
+                    self.safe_sleep(self.backoff_seconds * (2 ** attempt))
 
         if last_error:
             raise RuntimeError(
