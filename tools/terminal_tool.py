@@ -16,10 +16,14 @@ class TerminalTool:
         os.makedirs(self.log_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, "terminal.log")
 
-    def run_command(self, command: str, timeout: int = 60) -> dict:
+    def run_command(self, command: str, timeout: int = 60, policy_decision: PolicyDecision | None = None, policy_reason: str | None = None) -> dict:
         start_time = time.time()
         cwd = os.getcwd()
-        decision, reason = self.policy_engine.evaluate(command)
+        if policy_decision is None:
+            decision, reason = self.policy_engine.evaluate(command)
+        else:
+            decision = policy_decision
+            reason = policy_reason or ""
 
         log_entry = {
             "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),

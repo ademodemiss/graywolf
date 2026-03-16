@@ -17,12 +17,24 @@ class GeminiAdapter(LLMAdapter):
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
 
-    def generate_response(self, prompt: str, **kwargs) -> str:
+    def generate_response(self, prompt: str, **kwargs) -> tuple[str, int, int]:
+        model_name = kwargs.get("model", self.model_name)
+        
+        # Prompt tokenlarını say
+        prompt_token_count = self.client.models.count_tokens(model=model_name, contents=prompt).total_tokens
+
         response = self.client.models.generate_content(
-            model=kwargs.get("model", self.model_name),
+            model=model_name,
             contents=prompt,
         )
-        return getattr(response, "text", "") or ""
+        response_text = getattr(response, "text", "") or ""
+        
+        # Yanıt tokenlarını say
+        # Gemini API genellikle yanıtta token bilgisini doğrudan sağlamaz.
+        # Bu nedenle, yanıt metnini saymak için count_tokens kullanacağız.
+        completion_token_count = self.client.models.count_tokens(model=model_name, contents=response_text).total_tokens
+
+        return response_text, prompt_token_count, completion_token_count
 
     def get_model_info(self) -> dict:
         return {
@@ -41,11 +53,26 @@ class GeminiAdapter(LLMAdapter):
             if text:
                 yield text
 
-    def chat_completion(self, messages: List[Dict], **kwargs) -> str:
-        # Minimal chat mapping: flatten into a single prompt
+    def chat_completion(self, messages: List[Dict], **kwargs) -> tuple[str, int, int]:
+        model_name = kwargs.get("model", self.model_name)
+
+        # Minimal chat mapping: flatten into a single prompt for now
         full_prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
         full_prompt += "\nassistant:"
-        return self.generate_response(full_prompt, **kwargs)
+
+        # Prompt tokenlarını say
+        prompt_token_count = self.client.models.count_tokens(model=model_name, contents=full_prompt).total_tokens
+
+        response = self.client.models.generate_content(
+            model=model_name,
+            contents=full_prompt,
+        )
+        response_text = getattr(response, "text", "") or ""
+
+        # Yanıt tokenlarını say
+        completion_token_count = self.client.models.count_tokens(model=model_name, contents=response_text).total_tokens
+
+        return response_text, prompt_token_count, completion_token_count
 
 
 if __name__ == "__main__":

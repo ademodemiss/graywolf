@@ -16,6 +16,28 @@
   <h2>Son 10 Workflow</h2>
   <pre id="workflows"></pre>
 
+  <h2>Replan Bridge Durumu</h2>
+  <div id="replan-summary"></div>
+  <div id="replan-processing"></div>
+  <pre id="replan-entries"></pre>
+
+  <h2>Learning Recovery Önerileri ve Log</h2>
+  <div id="learning-recovery-summary"></div>
+  <h3>Autopilot</h3>
+  <pre id="learning-recovery-autopilot"></pre>
+  <h3>Trend</h3>
+  <pre id="learning-recovery-trend"></pre>
+  <h3>Trend Metrikleri</h3>
+  <div id="learning-recovery-trend-metrics"></div>
+  <pre id="learning-recovery-trend-history"></pre>
+  <h3>Insights</h3>
+  <ul id="learning-recovery-insights"></ul>
+  <h3>Reliability Alarm</h3>
+  <div id="learning-recovery-alert-summary"></div>
+  <pre id="learning-recovery-alert-history"></pre>
+  <h3>Log Kayıtları</h3>
+  <pre id="learning-recovery-log"></pre>
+
   <script>
     async function loadStatus() {
       const r = await fetch('/api/status');
@@ -24,6 +46,102 @@
         `agent: ${d.agent_status} | idle: ${d.idle} (${d.idle_minutes} dk) | errors_24h: ${d.errors_24h} | last_log: ${d.last_log_ts}`;
       document.getElementById('logs').innerText = JSON.stringify(d.last_logs, null, 2);
       document.getElementById('workflows').innerText = JSON.stringify(d.last_workflows, null, 2);
+
+      const replan = d.replan_bridge || {};
+      const summaryDiv = document.getElementById('replan-summary');
+      if (!replan.exists) {
+        summaryDiv.innerText = 'Replan bridge logları bulunamadı.';
+      } else {
+        const approvalStatus = (replan.approval_request && replan.approval_request.status) || 'bilinmiyor';
+        summaryDiv.innerText =
+          `Replan son etkinlik: ${replan.latest_event} @ ${replan.latest_ts} | status: ${replan.latest_status} | approval: ${approvalStatus}`;
+      }
+      const processing = d.replan_bridge_processing || {};
+      const latency = processing.approval_latency || {};
+      const processingDiv = document.getElementById('replan-processing');
+      const avgLatency = latency.avg_seconds ? latency.avg_seconds.toFixed(1) : '—';
+      const maxLatency = latency.max_seconds ? latency.max_seconds.toFixed(1) : '—';
+      processingDiv.innerText =
+        `Otomasyon: işlenen ${processing.processed ?? 0}, bekleyen ${processing.pending ?? 0} | ` +
+        `Onay gecikmesi avg ${avgLatency}s / max ${maxLatency}s (threshold ${processing.approval_latency_threshold_seconds ?? 120}s, long ${latency.long_count ?? 0})`;
+      document.getElementById('replan-entries').innerText = JSON.stringify(d.replan_bridge_entries || [], null, 2);
+
+      const recovery = d.learning_recovery || {};
+      const suggestions = recovery.suggestions || {};
+      const autopilot = suggestions.autopilot || {};
+      const suggestionTrend = suggestions.trend || {};
+      const trendStats = recovery.trend || {};
+      const trendLatest = trendStats.latest;
+      const insights = recovery.insights || [];
+      const alerts = recovery.alerts || {};
+      const summaryEl = document.getElementById('learning-recovery-summary');
+      const autopEl = document.getElementById('learning-recovery-autopilot');
+      const trendEl = document.getElementById('learning-recovery-trend');
+      const insightsEl = document.getElementById('learning-recovery-insights');
+      const trendMetricsEl = document.getElementById('learning-recovery-trend-metrics');
+      const trendHistoryEl = document.getElementById('learning-recovery-trend-history');
+      const alertSummaryEl = document.getElementById('learning-recovery-alert-summary');
+      const alertHistoryEl = document.getElementById('learning-recovery-alert-history');
+      const logEl = document.getElementById('learning-recovery-log');
+      const summaryLines = [];
+      insightsEl.innerHTML = '';
+      if (insights.length) {
+        insights.forEach((insight) => {
+          const li = document.createElement('li');
+          li.textContent = `[${insight.severity || 'info'}] ${insight.title} (${insight.suggested_action || 'izleme'})`;
+          insightsEl.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'Insight kaydı yok.';
+        insightsEl.appendChild(li);
+      }
+      if (autopilot.summary) {
+        summaryLines.push(`Autopilot önerisi: ${autopilot.summary}`);
+        autopEl.innerText = autopilot.summary;
+      } else {
+        autopEl.innerText = 'Autopilot kaydı bulunamadı.';
+      }
+      if (suggestionTrend.summary) {
+        summaryLines.push(`Trend önerisi: ${suggestionTrend.summary}`);
+        trendEl.innerText = suggestionTrend.summary;
+      } else {
+        trendEl.innerText = 'Trend önerisi bulunamadı.';
+      }
+      summaryEl.innerText = summaryLines.length ? summaryLines.join('\n') : 'Henüz learning recovery önerisi yok.';
+      if (trendMetricsEl) {
+        if (trendLatest) {
+          const statsData = trendLatest.stats || {};
+          const successRate = statsData.success_rate != null ? `${statsData.success_rate.toFixed(1)}%` : '—';
+          const reliability = statsData.reliability != null ? `${statsData.reliability.toFixed(1)}%` : '—';
+          const pending = statsData.pending ?? '—';
+          const severityLabel = (trendLatest.severity || 'info').toUpperCase();
+          const reasonsList = trendLatest.reasons || [];
+          const reasonsSummary = reasonsList.slice(0, 3).join('; ') || '—';
+          const extraReasons = reasonsList.length > 3 ? ` (+${reasonsList.length - 3})` : '';
+          const latestFeedback = trendLatest.latest_feedback || '—';
+          const duration = trendLatest.last_duration_ms ?? '—';
+          trendMetricsEl.innerHTML = `<strong>${severityLabel}</strong> | Başarı: ${successRate} | Reliability: ${reliability} | Pending: ${pending}<br>Son feedback: ${latestFeedback} | Süre: ${duration} ms<br>Sebep: ${reasonsSummary}${extraReasons}`;
+        } else {
+          trendMetricsEl.innerText = 'Trend metrik bilgisi yok.';
+        }
+      }
+      if (trendHistoryEl) {
+        trendHistoryEl.innerText = JSON.stringify(trendStats.history || [], null, 2);
+      }
+      if (alertSummaryEl) {
+        const latest = alerts.latest;
+        if (latest) {
+          const reasons = (latest.reasons || []).slice(0, 3).join('; ');
+          alertSummaryEl.innerHTML = `<strong>${(latest.severity || 'info').toUpperCase()}</strong>: ${reasons || 'Sebep yok'}`;
+        } else {
+          alertSummaryEl.innerHTML = 'Şu an alarm yok.';
+        }
+      }
+      if (alertHistoryEl) {
+        alertHistoryEl.innerText = JSON.stringify(alerts.history || [], null, 2);
+      }
+      logEl.innerText = JSON.stringify(recovery.log || [], null, 2);
     }
     loadStatus();
     setInterval(loadStatus, 15000);
