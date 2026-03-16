@@ -1,0 +1,15 @@
+./core/orchestrator.py:8:from workflows.runner import run_workflow, load_workflow
+./core/orchestrator.py:88:        return run_workflow(workflow)
+./core/orchestrator.py:128:        workflow_result = run_workflow(workflow_definition) # Yüklenen tanımı run_workflow'a ilet
+./workflows/runner.py:23:def run_workflow(workflow: dict) -> dict:
+./workflows/runner.py:87:    output = run_workflow(workflow)
+./agents/executor_agent.py:3:from workflows.runner import run_workflow
+./agents/executor_agent.py:14:        return run_workflow(wf)
+./tests/test_self_improve_orchestrator.py:23:@patch('core.orchestrator.run_workflow')
+./tests/test_self_improve_orchestrator.py:25:    mock_run_workflow,
+./tests/test_self_improve_orchestrator.py:31:    mock_run_workflow.return_value = {
+./tests/test_self_improve_orchestrator.py:52:    mock_run_workflow.assert_called_once_with({'name': 'self-improve-log-analysis', 'description': 'GrayWolf terminal loglarını analiz eder ve iyileştirme önerileri sunar.', 'steps': [{'name': 'read_terminal_logs', 'cmd': 'python3 tools/file_tool.py --action read --path /home/adem/graywolf/logs/terminal.log', 'output_to': 'log_content'}, {'name': 'analyze_logs_with_llm', 'cmd': 'python3 tools/self_improve_tool.py --action analyze_logs --log_content "{{steps.read_terminal_logs.output.stdout}}" --context "GrayWolf terminal loglarının analizi. Performans iyileştirmeleri ve hataları azaltma hedefleniyor."', 'input_from': 'log_content', 'output_to': 'analysis_result'}, {'name': 'save_analysis_report', 'cmd': 'python3 tools/file_tool.py --action write --path /home/adem/graywolf/logs/self_improve_reports.log --content "{{steps.analyze_logs_with_llm.output.stdout}}" --append true', 'input_from': 'analysis_result'}]})
+./tests/test_self_improve_orchestrator.py:57:@patch('core.orchestrator.run_workflow')
+./tests/test_self_improve_orchestrator.py:59:    mock_run_workflow,
+./tests/test_self_improve_orchestrator.py:65:    mock_run_workflow.return_value = {"status": "error", "error": "Workflow Hatası"}
+./tests/test_self_improve_orchestrator.py:72:    mock_run_workflow.assert_called_once_with({'name': 'self-improve-log-analysis', 'description': 'GrayWolf terminal loglarını analiz eder ve iyileştirme önerileri sunar.', 'steps': [{'name': 'read_terminal_logs', 'cmd': 'python3 tools/file_tool.py --action read --path /home/adem/graywolf/logs/terminal.log', 'output_to': 'log_content'}, {'name': 'analyze_logs_with_llm', 'cmd': 'python3 tools/self_improve_tool.py --action analyze_logs --log_content "{{steps.read_terminal_logs.output.stdout}}" --context "GrayWolf terminal loglarının analizi. Performans iyileştirmeleri ve hataları azaltma hedefleniyor."', 'input_from': 'log_content', 'output_to': 'analysis_result'}, {'name': 'save_analysis_report', 'cmd': 'python3 tools/file_tool.py --action write --path /home/adem/graywolf/logs/self_improve_reports.log --content "{{steps.analyze_logs_with_llm.output.stdout}}" --append true', 'input_from': 'analysis_result'}]})

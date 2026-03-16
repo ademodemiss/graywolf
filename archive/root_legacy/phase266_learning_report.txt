@@ -1,0 +1,8 @@
+Phase 267 Learning Feedback Özeti
+Son 24 saat içinde 2 job incelendi.
+Başarı oranı: 100.0% (2 başarılı / 2 toplam)
+Reliability score: 95.0%
+Warning rate: 0.0% | Failures: 0 | Pending: 0
+Son statü: completed | feedback: manual success
+Son follow-up notları: manual success (scheduler executed job)
+telegram = {'status': 'skipped', 'reason': 'TELEGRAM_NOT_CONFIGURED'}
