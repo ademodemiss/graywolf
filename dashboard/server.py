@@ -1,13 +1,23 @@
 import argparse
 import json
+from pathlib import Path
+import sys
 
-from dashboard.data import build_status_payload
-from dashboard.views import index_context
+try:
+    from dashboard.data import build_status_payload
+    from dashboard.views import index_context
+except ModuleNotFoundError:
+    # Allow direct execution: python dashboard/server.py
+    repo_root = Path(__file__).resolve().parent.parent
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from dashboard.data import build_status_payload
+    from dashboard.views import index_context
 
 
 def run_test_mode() -> int:
     payload = build_status_payload()
-    required = {"agent_status", "idle", "idle_minutes", "last_log_ts", "errors_24h", "last_logs", "last_workflows"}
+    required = {"agent_status", "idle", "idle_minutes", "last_log_ts", "errors_24h", "last_logs", "last_workflows", "replan_bridge", "replan_bridge_entries", "replan_bridge_processing", "learning_recovery"}
     if not required.issubset(set(payload.keys())):
         print("dashboard_test_failed")
         return 1
