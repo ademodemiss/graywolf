@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from adapters.llm.llm_adapter import LLMAdapter
 from core.llm_factory import create_llm
+from core.cost_tracker import CostTracker
 
 
 class RateLimitError(Exception):
@@ -27,6 +28,7 @@ class RoutedLLMAdapter(LLMAdapter):
         self.fallback = fallback
         self.primary_name = primary_name
         self.fallback_name = fallback_name
+        self.cost_tracker = CostTracker(log_dir="/home/adem/graywolf/logs/")
 
     def _normalize_error(self, err: Exception) -> Exception:
         if isinstance(err, self.RETRYABLE_ERRORS):
@@ -47,15 +49,29 @@ class RoutedLLMAdapter(LLMAdapter):
         )
 
     def _with_fallback(self, fn_name: str, *args, **kwargs):
+        current_provider = self.primary_name
+        current_llm_adapter = self.primary
+        
         try:
-            fn = getattr(self.primary, fn_name)
-            return fn(*args, **kwargs)
+            fn = getattr(current_llm_adapter, fn_name)
+            response_text, prompt_tokens, completion_tokens = fn(*args, **kwargs)
+            
+            cost = self.cost_tracker.calculate_cost(current_provider, current_llm_adapter.model_name, prompt_tokens, completion_tokens)
+            self.cost_tracker.log_cost(current_provider, current_llm_adapter.model_name, prompt_tokens, completion_tokens, cost)
+            return response_text
         except Exception as err:
             normalized = self._normalize_error(err)
             if isinstance(normalized, self.RETRYABLE_ERRORS):
                 self._fallback_log(normalized)
-                fn = getattr(self.fallback, fn_name)
-                return fn(*args, **kwargs)
+                current_provider = self.fallback_name
+                current_llm_adapter = self.fallback
+
+                fn = getattr(current_llm_adapter, fn_name)
+                response_text, prompt_tokens, completion_tokens = fn(*args, **kwargs)
+
+                cost = self.cost_tracker.calculate_cost(current_provider, current_llm_adapter.model_name, prompt_tokens, completion_tokens)
+                self.cost_tracker.log_cost(current_provider, current_llm_adapter.model_name, prompt_tokens, completion_tokens, cost)
+                return response_text
             raise
 
     def generate_response(self, prompt: str, **kwargs) -> str:
