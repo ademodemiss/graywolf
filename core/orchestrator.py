@@ -89,9 +89,35 @@ class Orchestrator:
             name, instruction = line.split("|", 1)
             name = name.strip()
             instruction = self._normalize_instruction(instruction.strip())
+            instruction = self._apply_quality_filter(instruction)
             if name and instruction:
                 steps.append(OrchestratorStep(name=name, instruction=instruction))
+
+        if not steps:
+            steps.append(
+                OrchestratorStep(
+                    name="fallback_status_report",
+                    instruction="python3 /home/adem/graywolf/tools/status_reporter.py --summary --points 8 > logs/autonomy_live_report.md",
+                )
+            )
         return steps[:3]
+
+    @staticmethod
+    def _apply_quality_filter(instruction: str) -> str:
+        cmd = (instruction or "").strip()
+        if not cmd:
+            return cmd
+
+        disallowed_tokens = ["rm -rf /", "mkfs", "shutdown", "reboot", "poweroff", "dd if="]
+        if any(tok in cmd for tok in disallowed_tokens):
+            return "echo 'blocked_by_quality_filter'"
+
+        # Prevent bare tool names from being treated as binaries.
+        bare_tools = ["analysis_tool", "code_tool", "status_reporter", "report_tool"]
+        if cmd in bare_tools:
+            return "python3 /home/adem/graywolf/tools/status_reporter.py --summary --points 8 > logs/autonomy_live_report.md"
+
+        return cmd
 
     @staticmethod
     def _normalize_instruction(instruction: str) -> str:

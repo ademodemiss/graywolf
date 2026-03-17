@@ -6,6 +6,7 @@ PY="/home/adem/.openclaw/workspace/.venv/bin/python"
 PID_FILE="$ROOT/logs/autonomy_daemon.pid"
 LOG_FILE="$ROOT/logs/autonomy_daemon.log"
 INTERVAL_SECONDS="${AUTONOMY_INTERVAL_SECONDS:-120}"
+MAX_LOG_BYTES="${AUTONOMY_MAX_LOG_BYTES:-5242880}"
 
 mkdir -p "$ROOT/logs"
 
@@ -28,11 +29,28 @@ start() {
 
   nohup bash -lc '
     set -euo pipefail
+    fail_count=0
     while true; do
+      if [[ -f "'"$LOG_FILE"'" ]]; then
+        size=$(wc -c < "'"$LOG_FILE"'" || echo 0)
+        if [[ "$size" -gt '"$MAX_LOG_BYTES"' ]]; then
+          mv "'"$LOG_FILE"'" "'"$LOG_FILE"'".$(date +%Y%m%d%H%M%S)
+        fi
+      fi
+
       echo "[$(date -Is)] cycle:start"
-      PYTHONPATH="/home/adem/graywolf" /home/adem/.openclaw/workspace/.venv/bin/python /home/adem/graywolf/scripts/run_autonomy_worker.py || true
-      echo "[$(date -Is)] cycle:end sleep='"$INTERVAL_SECONDS"'s"
-      sleep '"$INTERVAL_SECONDS"'
+      if PYTHONPATH="/home/adem/graywolf" /home/adem/.openclaw/workspace/.venv/bin/python /home/adem/graywolf/scripts/run_autonomy_worker.py; then
+        fail_count=0
+        sleep_for='"$INTERVAL_SECONDS"'
+      else
+        fail_count=$((fail_count+1))
+        sleep_for=$(( '"$INTERVAL_SECONDS"' + fail_count*30 ))
+        if [[ "$sleep_for" -gt 600 ]]; then sleep_for=600; fi
+        echo "[$(date -Is)] cycle:error fail_count=$fail_count next_sleep=${sleep_for}s"
+      fi
+
+      echo "[$(date -Is)] cycle:end sleep=${sleep_for}s"
+      sleep "$sleep_for"
     done
   ' >> "$LOG_FILE" 2>&1 &
 
