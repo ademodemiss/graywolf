@@ -21,6 +21,13 @@ PYTHONPATH=/home/adem/graywolf /home/adem/.openclaw/workspace/.venv/bin/python /
 - Test/acceptance görevlerini `tasks/processed_test` / `tasks/queue_test` altına ayırır.
 - Rapor: `reports/queue_hygiene_latest.md`
 
+## Ops Automation
+```bash
+/home/adem/graywolf/scripts/ops_automation.sh daily
+/home/adem/graywolf/scripts/ops_automation.sh prerelease
+```
+- Ayrıntı: `docs/ops/OPS_AUTOMATION.md`
+
 ## Günlük Sağlık Kontrolü
 1. Dashboard test:
 ```bash
