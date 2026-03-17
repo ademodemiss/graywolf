@@ -1,5 +1,7 @@
 # GrayWolf Current Project State
 
+> Historical only: Bu dosya arşiv referansıdır; aktif durum için `docs/PROJECT_CANONICAL_STATE.md` kullanılır.
+
 ## Overview
 GrayWolf v1.2.0 (Hardened Autonomy) şu anda Phase 263 replan hattının canlıya alınmasıyla birlikte Phase 264’ün izleme ve operasyona destek katmanlarını inşa etmeye odaklanıyor. Replan → self-improve → Telegram → ApprovalManager köprüsü çalışır durumda; Phase 264’te bu hattın sağlığını ölçen dashboard/doküman ve script katmanları geliştiriliyor.
 

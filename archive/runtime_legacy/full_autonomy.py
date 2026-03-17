@@ -1,3 +1,6 @@
+# DEPRECATED: Legacy runtime entry. Do not extend.
+# Canonical runtime: core/autonomous_loop.py + scripts/run_autonomy_worker.py + scripts/autonomy_daemon.sh
+
 import json
 import os
 from datetime import datetime

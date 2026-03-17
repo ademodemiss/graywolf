@@ -1,9 +1,15 @@
+"""DEPRECATED compatibility executor.
+Use canonical workflow runner: workflows/runner.py::run_workflow
+"""
+
 import argparse
 import json
 
-from policies.shell_policy import ShellPolicy
-from tools.terminal_tool import TerminalTool
+from core.human_gate import HumanGate
+from monitor.approval_notifier import ApprovalNotifier
 from workflow_engine.workflow_graph import build_graph
+
+ApprovalNotifier()
 from workflow_engine.workflow_parser import parse_workflow
 from workflow_engine.workflow_validator import validate_workflow
 
@@ -13,11 +19,12 @@ def execute_workflow(workflow: dict) -> dict:
     if not check['valid']:
         return {'status': 'blocked', 'issues': check['issues']}
 
-    tool = TerminalTool(policy_engine=ShellPolicy(), log_dir='/home/adem/graywolf/logs')
+    gate = HumanGate()
     results = []
     for step in workflow.get('steps', []):
         cmd = step.get('run', '')
-        results.append(tool.run_command(cmd))
+        step_name = step.get('name')
+        results.append(gate.execute_command(cmd, step_name=step_name))
 
     return {'status': 'completed', 'graph': build_graph(workflow), 'results': results}
 

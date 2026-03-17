@@ -27,7 +27,7 @@
 - `python3 -m post_release.phase_smoke --phase 28 --test`
 - `python3 -m post_release.phase_smoke --phase 29 --test`
 - `python3 -m post_release.phase_smoke --phase 30 --test`
-- `python3 -m core.agent_loop --dry-run`
+- `python3 -m core.agent_loop --dry-run` _(legacy/deprecated path; canonical runtime: `scripts/run_autonomy_worker.py` + `scripts/autonomy_daemon.sh`)_
 
 ## [Unreleased] - 2026-03-04
 
@@ -119,4 +119,4 @@
 - `python3 -m memory.memory_store`
 - `python3 -m memory.memory_index`
 - `python3 -m py_compile /home/adem/graywolf/core/agent_loop.py`
-- `python3 -m core.agent_loop --goal 'healthcheck system' --once`
+- `python3 -m core.agent_loop --goal 'healthcheck system' --once` _(legacy/deprecated path; canonical runtime: `scripts/run_autonomy_worker.py` + `scripts/autonomy_daemon.sh`)_

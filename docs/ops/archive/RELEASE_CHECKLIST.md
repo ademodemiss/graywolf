@@ -1,5 +1,7 @@
 # GrayWolf Release Checklist
 
+> Historical only: Bu dosya arşiv referansıdır; aktif operasyon/checklist için `docs/ops/OPERATIONS.md` ve `docs/ops/RUNTIME_CLEANUP_MIGRATION_PLAN.md` kullanılır.
+
 ## Faz 1 — Sistem Temeli
 - [x] `policies/shell_policy.py` ALLOW/CONFIRM/DENY + reason
 - [x] `tools/terminal_tool.py` shell=False, shlex.split, timeout, JSON log

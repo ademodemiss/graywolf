@@ -1,4 +1,6 @@
 # Next Action
+
+> Historical only: Bu dosya arşiv referansıdır; aktif plan için `docs/ops/RUNTIME_CLEANUP_MIGRATION_PLAN.md` ve `docs/PROJECT_CANONICAL_STATE.md` kullanılır.
 1. `monitor/learning_recovery_coordinator.py`'i `PYTHONPATH=/home/adem/graywolf` ve `--telegram` ile çalıştır; summary çıktısını, `learning_recovery_suggestions.json`’u ve `logs/learning_recovery_summary.log`’daki son entry’yi kontrol et.
 2. Cron job `Phase 269 Learning Recovery Coordinator`’ın `openclaw cron list`’te aktif ve `nextRunAt` güncel olduğundan emin ol. Script’in her 4 saatte bir `logs/learning_recovery_summary.log`’a entry yazdığından ve Telegram’da raporlandığından emin ol.
 3. Phase 270 planını uygulamak için `monitor/learning_recovery_inspector.py`’ı çalıştır; sample loglar ile `logs/learning_recovery_insights.json` çıktılarını test et, `learning_recovery_runbook.md`’i ops’a anlat, dashboard kartlarını yeni insights’la güncelle ve `dashboard/server.py --test` ile `learning_recovery_insights` alanının beklendiği gibi geldiğini doğrula.
