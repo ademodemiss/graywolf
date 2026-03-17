@@ -1,6 +1,8 @@
 import argparse
 import json
 import time
+import re
+from pathlib import Path
 from dataclasses import dataclass
 
 from adapters.llm.llm_adapter import LLMAdapter
@@ -48,7 +50,12 @@ class Orchestrator:
     def plan(self, goal: str) -> list[OrchestratorStep]:
         prompt = (
             "En fazla 3 satır üret. Her satır formatı: step_name|shell_command\n"
-            "Hedefine ulaşmak için uygun GrayWolf araçlarını (excel_tool, mail_tool, financial_data_tool, analysis_tool, code_tool, terminal_tool, file_tool) veya Linux komutlarını kullan. "
+            "Sadece gerçek shell komutu yaz. Çıplak tool adı YAZMA (ör: analysis_tool YAZMA).\n"
+            "GrayWolf tool kullanacaksan python3 ile tam yol ver: "
+            "python3 /home/adem/graywolf/tools/<tool>.py ...\n"
+            "Risk özeti için tercih edilen komut: /home/adem/graywolf/scripts/risk_summary_from_terminal.sh\n"
+            "Dosyaya yazmak için güvenli hedefler: logs/, reports/, tasks/.\n"
+            "Örnek: write_report|echo 'metin' > logs/report.md\n"
             "Sadece komut yaz, açıklama yazma.\n"
             f"Goal: {goal}"
         )
@@ -81,10 +88,39 @@ class Orchestrator:
                 continue
             name, instruction = line.split("|", 1)
             name = name.strip()
-            instruction = instruction.strip()
+            instruction = self._normalize_instruction(instruction.strip())
             if name and instruction:
                 steps.append(OrchestratorStep(name=name, instruction=instruction))
         return steps[:3]
+
+    @staticmethod
+    def _normalize_instruction(instruction: str) -> str:
+        cmd = instruction or ""
+        m = re.search(r"/home/adem/graywolf/tools/([a-zA-Z0-9_\-]+\.py)", cmd)
+        if not m:
+            return cmd
+
+        tool_file = m.group(1)
+        tool_path = Path("/home/adem/graywolf/tools") / tool_file
+        if tool_path.exists():
+            return cmd
+
+        alias_map = {
+            "graywolf_status_reporter.py": "status_reporter.py",
+            "gw_autonomy_monitor.py": "status_reporter.py",
+            "autonomy_state_summary_tool.py": "status_reporter.py",
+            "status_reporter.py": "status_reporter.py",
+            "autonomy_summary_tool.py": "autonomy_summary_tool.py",
+        }
+        replacement = alias_map.get(tool_file)
+        if replacement:
+            return cmd.replace(f"/home/adem/graywolf/tools/{tool_file}", f"/home/adem/graywolf/tools/{replacement}")
+
+        if tool_file.endswith("_reporter.py"):
+            return cmd.replace(f"/home/adem/graywolf/tools/{tool_file}", "/home/adem/graywolf/tools/status_reporter.py")
+
+        # Generic fallback: unknown tool script -> status_reporter
+        return cmd.replace(f"/home/adem/graywolf/tools/{tool_file}", "/home/adem/graywolf/tools/status_reporter.py")
 
     def execute_plan(self, steps: list[OrchestratorStep]) -> dict:
         workflow = {
@@ -113,7 +149,13 @@ class Orchestrator:
 
         replan_workflow = {
             "name": f"replan-{workflow_name or 'plan'}",
-            "steps": [{"name": step.get("name"), "cmd": step.get("cmd")} for step in replan_steps],
+            "steps": [
+                {
+                    "name": step.get("name"),
+                    "cmd": step.get("cmd") or step.get("instruction"),
+                }
+                for step in replan_steps
+            ],
         }
         replan_execution = run_workflow(replan_workflow)
         self._publish_replan_executed(workflow_name, replan_info, replan_execution)

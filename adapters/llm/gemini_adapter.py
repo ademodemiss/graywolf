@@ -11,30 +11,33 @@ class GeminiAdapter(LLMAdapter):
         if not api_key:
             raise ValueError("Gemini API Key not found. Please set GOOGLE_API_KEY environment variable or provide it.")
 
-        # New SDK (google.genai)
-        from google import genai
+        # Compatibility: prefer new SDK (google.genai), fallback to google-generativeai.
+        self._use_new_sdk = False
+        try:
+            from google import genai  # type: ignore
+            self.client = genai.Client(api_key=api_key)
+            self._use_new_sdk = True
+        except Exception:
+            import google.generativeai as genai  # type: ignore
+            genai.configure(api_key=api_key)
+            self.client = genai
 
-        self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
 
     def generate_response(self, prompt: str, **kwargs) -> tuple[str, int, int]:
         model_name = kwargs.get("model", self.model_name)
         
-        # Prompt tokenlarını say
-        prompt_token_count = self.client.models.count_tokens(model=model_name, contents=prompt).total_tokens
+        if self._use_new_sdk:
+            prompt_token_count = self.client.models.count_tokens(model=model_name, contents=prompt).total_tokens
+            response = self.client.models.generate_content(model=model_name, contents=prompt)
+            response_text = getattr(response, "text", "") or ""
+            completion_token_count = self.client.models.count_tokens(model=model_name, contents=response_text).total_tokens
+            return response_text, prompt_token_count, completion_token_count
 
-        response = self.client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-        )
+        # google-generativeai fallback
+        response = self.client.GenerativeModel(model_name).generate_content(prompt)
         response_text = getattr(response, "text", "") or ""
-        
-        # Yanıt tokenlarını say
-        # Gemini API genellikle yanıtta token bilgisini doğrudan sağlamaz.
-        # Bu nedenle, yanıt metnini saymak için count_tokens kullanacağız.
-        completion_token_count = self.client.models.count_tokens(model=model_name, contents=response_text).total_tokens
-
-        return response_text, prompt_token_count, completion_token_count
+        return response_text, 0, 0
 
     def get_model_info(self) -> dict:
         return {
@@ -44,10 +47,18 @@ class GeminiAdapter(LLMAdapter):
         }
 
     def stream_response(self, prompt: str, **kwargs):
-        stream = self.client.models.generate_content_stream(
-            model=kwargs.get("model", self.model_name),
-            contents=prompt,
-        )
+        if self._use_new_sdk:
+            stream = self.client.models.generate_content_stream(
+                model=kwargs.get("model", self.model_name),
+                contents=prompt,
+            )
+            for chunk in stream:
+                text = getattr(chunk, "text", None)
+                if text:
+                    yield text
+            return
+
+        stream = self.client.GenerativeModel(kwargs.get("model", self.model_name)).generate_content(prompt, stream=True)
         for chunk in stream:
             text = getattr(chunk, "text", None)
             if text:
@@ -60,19 +71,16 @@ class GeminiAdapter(LLMAdapter):
         full_prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
         full_prompt += "\nassistant:"
 
-        # Prompt tokenlarını say
-        prompt_token_count = self.client.models.count_tokens(model=model_name, contents=full_prompt).total_tokens
+        if self._use_new_sdk:
+            prompt_token_count = self.client.models.count_tokens(model=model_name, contents=full_prompt).total_tokens
+            response = self.client.models.generate_content(model=model_name, contents=full_prompt)
+            response_text = getattr(response, "text", "") or ""
+            completion_token_count = self.client.models.count_tokens(model=model_name, contents=response_text).total_tokens
+            return response_text, prompt_token_count, completion_token_count
 
-        response = self.client.models.generate_content(
-            model=model_name,
-            contents=full_prompt,
-        )
+        response = self.client.GenerativeModel(model_name).generate_content(full_prompt)
         response_text = getattr(response, "text", "") or ""
-
-        # Yanıt tokenlarını say
-        completion_token_count = self.client.models.count_tokens(model=model_name, contents=response_text).total_tokens
-
-        return response_text, prompt_token_count, completion_token_count
+        return response_text, 0, 0
 
 
 if __name__ == "__main__":

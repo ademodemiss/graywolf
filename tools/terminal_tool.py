@@ -10,15 +10,17 @@ from policies.shell_policy import PolicyDecision, ShellPolicy
 
 
 class TerminalTool:
-    def __init__(self, policy_engine: ShellPolicy, log_dir: str = "/home/adem/graywolf/logs"):
+    def __init__(self, policy_engine: ShellPolicy, log_dir: str = "/home/adem/graywolf/logs", work_dir: str = "/home/adem/graywolf"):
         self.policy_engine = policy_engine
         self.log_dir = os.path.expanduser(log_dir)
+        self.work_dir = os.path.expanduser(work_dir)
         os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(self.work_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, "terminal.log")
 
     def run_command(self, command: str, timeout: int = 60, policy_decision: PolicyDecision | None = None, policy_reason: str | None = None) -> dict:
         start_time = time.time()
-        cwd = os.getcwd()
+        cwd = self.work_dir
         if policy_decision is None:
             decision, reason = self.policy_engine.evaluate(command)
         else:
@@ -57,13 +59,15 @@ class TerminalTool:
             return finalize("needs_confirmation", stderr="Command requires confirmation.", exit_code=2)
 
         try:
+            use_shell = any(token in command for token in [">", ">>"])
             process = subprocess.run(
-                shlex.split(command),
+                command if use_shell else shlex.split(command),
                 capture_output=True,
                 text=True,
                 check=False,
-                shell=False,
+                shell=use_shell,
                 timeout=timeout,
+                cwd=self.work_dir,
             )
             status = "success" if process.returncode == 0 else "error"
             return finalize(status, process.stdout, process.stderr, process.returncode)

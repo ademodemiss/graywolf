@@ -61,7 +61,13 @@ class AutonomousLoop:
             goal = task.get("goal") or task.get("title")
             steps = self.orchestrator.plan(goal)
             execution_result = self.orchestrator.execute_plan(steps)
-            status = "completed" if execution_result.get("success", True) else "failed"
+            workflow_status = execution_result.get("status")
+            if workflow_status in {"completed", "success"}:
+                status = "completed"
+            elif workflow_status in {"stopped", "failed", "error"}:
+                status = "failed"
+            else:
+                status = "completed" if execution_result.get("success", True) else "failed"
             self.queue.mark_processed(task['task_id'], status=status, result=execution_result)
             return {"status": status, "task_id": task['task_id']}
         except Exception as e:
