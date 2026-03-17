@@ -11,13 +11,19 @@ class GeminiAdapter(LLMAdapter):
         if not api_key:
             raise ValueError("Gemini API Key not found. Please set GOOGLE_API_KEY environment variable or provide it.")
 
-        # Compatibility: prefer new SDK (google.genai), fallback to google-generativeai.
+        # Prefer new SDK (google.genai). Legacy fallback is opt-in only.
         self._use_new_sdk = False
         try:
             from google import genai  # type: ignore
             self.client = genai.Client(api_key=api_key)
             self._use_new_sdk = True
-        except Exception:
+        except Exception as e:
+            allow_legacy = os.getenv("GRAYWOLF_ALLOW_LEGACY_GEMINI", "0") == "1"
+            if not allow_legacy:
+                raise RuntimeError(
+                    "google.genai initialization failed. Install/repair google-genai or set "
+                    "GRAYWOLF_ALLOW_LEGACY_GEMINI=1 to allow deprecated fallback."
+                ) from e
             import google.generativeai as genai  # type: ignore
             genai.configure(api_key=api_key)
             self.client = genai
