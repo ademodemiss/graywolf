@@ -22,6 +22,6 @@
 - [x] Risk summary script exists
 
 ## E) Remaining (post-release improvements)
-- [ ] Fine-grained task success scoring
-- [ ] Financial decision support hardening
-- [ ] Extended self-improve regression suite
+- [x] Fine-grained task success scoring (v1: per-task quality_score + average score in `logs/three_tasks_summary.md`)
+- [x] Financial decision support hardening (data validation + quality/meta checks in `financial_data_tool`)
+- [x] Extended self-improve regression suite (`scripts/self_improve_regression.sh`)

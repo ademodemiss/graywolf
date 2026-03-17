@@ -22,6 +22,13 @@ Date: 2026-03-17
 - Autonomy loop: READY (guarded)
 
 ## Remaining (next release cycle)
-- Fine-grained task quality scoring
-- Financial decision-support hardening
 - Expanded self-improve regression coverage
+
+## Post-report update (2026-03-17)
+- Fine-grained task success scoring v1 activated in `scripts/run_three_real_tasks.sh`
+- `logs/three_tasks_summary.md` now includes per-task `quality_score` (0-100) and `average_quality_score`
+- Financial decision-support hardening applied:
+  - `tools/financial_data_tool.py`: ticker/period/interval doğrulama, veri kalite metrikleri (`quality_score`, `stale_days`, `completeness_pct`), sanitize edilmiş ticker info çıktısı
+- Extended self-improve regression suite added:
+  - `scripts/self_improve_regression.sh`
+  - Latest run: `logs/self_improve_regression_latest.md` => 26 passed

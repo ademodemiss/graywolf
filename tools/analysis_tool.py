@@ -2,10 +2,11 @@ import argparse
 import json
 from core.llm_router import LLMRouter
 
+
 class AnalysisTool:
     def __init__(self, llm_router: LLMRouter):
         self.llm_router = llm_router
-        self.llm = self.llm_router.get() # RoutedLLMAdapter instance
+        self.llm = self.llm_router.get()  # RoutedLLMAdapter instance
 
     @staticmethod
     def _normalize_llm_output(output):
@@ -35,10 +36,10 @@ def main():
     parser = argparse.ArgumentParser(description="GrayWolf Finansal Analiz Aracı")
     parser.add_argument("--ticker", required=True, help="Hisse senedi sembolü (örn. 'AAPL')")
     parser.add_argument("--data", required=True, help="Analiz edilecek JSON formatında finansal veri")
-    
+
     args = parser.parse_args()
 
-    llm_router = LLMRouter() # Yeni bir LLMRouter örneği oluştur
+    llm_router = LLMRouter()  # Yeni bir LLMRouter örneği oluştur
     tool = AnalysisTool(llm_router)
 
     try:
@@ -47,7 +48,7 @@ def main():
         parser.error("--data argümanı geçerli bir JSON formatında olmalı.")
 
     result = tool.analyze_financial_data(args.ticker, financial_data)
-    print(json.dumps(result, indent=2))
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

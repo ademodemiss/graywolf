@@ -52,15 +52,43 @@ report=logs/'three_tasks_summary.md'
 files=sorted(glob.glob(str(processed/'AUTO-BATCH-*-10[123].json')))[-3:]
 lines=[f"# Three Real Tasks Summary ({datetime.now().isoformat()})",""]
 
+task_outputs={
+    '101': root/'logs'/'real_task_repo_status.md',
+    '102': root/'logs'/'real_task_healthcheck.md',
+    '103': root/'logs'/'real_task_risk_summary.md',
+}
+
+scored=[]
+
+def score_task(status, workflow_status, output_path):
+    score=0
+    if status == 'completed':
+        score += 40
+    if workflow_status in {'completed', 'success'}:
+        score += 25
+    if output_path.exists():
+        score += 25
+        if output_path.stat().st_size > 20:
+            score += 10
+    return min(score, 100)
+
 if not files:
     lines.append("- No processed batch files found.")
 else:
     for p in files:
         d=json.load(open(p))
-        tid=d.get('task_id')
+        tid=d.get('task_id','')
         st=d.get('status')
         wf=d.get('result',{}).get('status')
-        lines.append(f"- {tid}: status={st}, workflow={wf}")
+        suffix=tid[-3:]
+        out=task_outputs.get(suffix, root/'logs'/'unknown_output.md')
+        quality_score=score_task(st, wf, out)
+        scored.append(quality_score)
+        lines.append(f"- {tid}: status={st}, workflow={wf}, quality_score={quality_score}/100")
+
+if scored:
+    avg=sum(scored)/len(scored)
+    lines += ["", f"## Quality scoring", f"- average_quality_score: {avg:.1f}/100"]
 
 lines += ["","## Output files","- logs/real_task_repo_status.md","- logs/real_task_healthcheck.md","- logs/real_task_risk_summary.md",""]
 
