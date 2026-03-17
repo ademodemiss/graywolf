@@ -2,6 +2,25 @@
 
 Bu dosya günlük operasyon için tek sayfa referanstır.
 
+## Release Öncesi Zorunlu Gate
+```bash
+/home/adem/graywolf/scripts/release_precheck.sh
+```
+
+Bu komut sırasıyla şunları koşar ve herhangi biri fail olursa release'i durdurur:
+1. `scripts/deprecation_guard.sh`
+2. `scripts/operator_tasks.sh all`
+3. `scripts/e2e_canonical_acceptance.py`
+
+Rapor: `reports/release_precheck_latest.md`
+
+## Queue Hijyeni (test/prod ayrımı)
+```bash
+PYTHONPATH=/home/adem/graywolf /home/adem/.openclaw/workspace/.venv/bin/python /home/adem/graywolf/scripts/queue_hygiene.py --apply
+```
+- Test/acceptance görevlerini `tasks/processed_test` / `tasks/queue_test` altına ayırır.
+- Rapor: `reports/queue_hygiene_latest.md`
+
 ## Günlük Sağlık Kontrolü
 1. Dashboard test:
 ```bash

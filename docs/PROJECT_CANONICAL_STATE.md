@@ -29,7 +29,7 @@ Hedef ürün davranışı:
 - Risk özeti: `scripts/risk_summary_from_terminal.sh`
 - Dashboard: `dashboard/server.py`
 
-Durum seviyesi: **Release Candidate / stabil çalışır**
+Durum seviyesi: **v2 Foundation Freeze / stabil çalışır**
 
 ---
 

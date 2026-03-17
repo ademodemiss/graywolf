@@ -11,6 +11,7 @@ Single entry for lifecycle operations:
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import subprocess
@@ -28,6 +29,8 @@ PY = Path("/home/adem/.openclaw/workspace/.venv/bin/python")
 WORKER = ROOT / "scripts" / "run_autonomy_worker.py"
 DAEMON = ROOT / "scripts" / "autonomy_daemon.sh"
 SESSION_STORE = SessionStateStore(root=str(ROOT / "sessions"))
+QUEUE_DIR = ROOT / "tasks" / "queue"
+PROCESSED_DIR = ROOT / "tasks" / "processed"
 
 
 def _exec(cmd: list[str]) -> dict:
@@ -85,6 +88,26 @@ def daemon(action: str, session_id: str) -> dict:
     return out
 
 
+def _tail_task_summaries(dir_path: Path, limit: int = 5) -> list[dict]:
+    files = sorted(glob.glob(str(dir_path / "*.json")))[-limit:]
+    items: list[dict] = []
+    for fp in files:
+        try:
+            d = json.loads(Path(fp).read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        items.append({
+            "file": Path(fp).name,
+            "task_id": d.get("task_id"),
+            "status": d.get("status"),
+            "intent": d.get("intent"),
+            "source": d.get("source"),
+            "queued_at": d.get("queued_at"),
+            "processed_at": d.get("processed_at"),
+        })
+    return items
+
+
 def status(session_id: str) -> dict:
     daemon_status = daemon("status", session_id)
 
@@ -104,6 +127,9 @@ def status(session_id: str) -> dict:
     session = SESSION_STORE.load(session_id)
     SESSION_STORE.record(session_id, command={"action": "status"}, result={"status": "ok"})
 
+    queue_files = glob.glob(str(QUEUE_DIR / "*.json"))
+    processed_files = glob.glob(str(PROCESSED_DIR / "*.json"))
+
     return {
         "status": "ok",
         "runtime": "graywolf-runtime-kernel-v1",
@@ -119,6 +145,12 @@ def status(session_id: str) -> dict:
             "pending_runtime_requests": pending_runtime,
             "replan_health": replan,
             "callbacks": callbacks,
+        },
+        "queue": {
+            "queue_depth": len(queue_files),
+            "processed_count": len(processed_files),
+            "last_5_queued": _tail_task_summaries(QUEUE_DIR, limit=5),
+            "last_5_processed": _tail_task_summaries(PROCESSED_DIR, limit=5),
         },
         "session": {
             "session_id": session.get("session_id"),

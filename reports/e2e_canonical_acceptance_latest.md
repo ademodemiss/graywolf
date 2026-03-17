@@ -1,15 +1,15 @@
 # E2E Canonical Acceptance Report
 
-- ts: 2026-03-17T20:26:47.523639
+- ts: 2026-03-17T20:32:00.228890
 - overall: PASS
 
 ## Scenario 1 — command -> task -> report artifact
 - status: PASS
-- detail: `{"rc": 0, "status": "queued", "task_file": "/home/adem/graywolf/tasks/queue/TASK-CMD-20260317202647-1736b5.json", "stderr": ""}`
+- detail: `{"rc": 0, "status": "queued", "task_file": "/home/adem/graywolf/tasks/queue/TASK-CMD-20260317203159-014725.json", "stderr": ""}`
 
 ## Scenario 2 — approval required -> callback -> continue
 - status: PASS
-- detail: `{"request_id": "0809d3b1-263f-4df3-8270-228bd000ed02", "final_status": "granted"}`
+- detail: `{"request_id": "e678208f-e90f-4caf-9224-f809574b59a8", "final_status": "granted"}`
 
 ## Scenario 3 — failure -> recovery -> final result
 - status: PASS
