@@ -6,6 +6,7 @@ import sys
 try:
     from dashboard.data import build_status_payload
     from dashboard.views import index_context
+    from adapters.interface.api_adapter import submit_api_command
 except ModuleNotFoundError:
     # Allow direct execution: python dashboard/server.py
     repo_root = Path(__file__).resolve().parent.parent
@@ -13,6 +14,7 @@ except ModuleNotFoundError:
         sys.path.insert(0, str(repo_root))
     from dashboard.data import build_status_payload
     from dashboard.views import index_context
+    from adapters.interface.api_adapter import submit_api_command
 
 
 def run_test_mode() -> int:
@@ -43,6 +45,18 @@ def create_app():
     @app.get("/api/status")
     def api_status():
         return JSONResponse(build_status_payload())
+
+    @app.post("/api/command")
+    async def api_command(request: Request):
+        body = await request.json()
+        intent = str(body.get("intent") or "").strip()
+        payload = body.get("payload") or {}
+        source = str(body.get("source") or "api")
+        if not intent:
+            return JSONResponse({"status": "error", "artifacts": {}, "errors": ["intent_required"]}, status_code=400)
+        out = submit_api_command(intent=intent, payload=payload, source=source)
+        code = 200 if out.get("status") in {"queued", "ok"} else 400
+        return JSONResponse(out, status_code=code)
 
     return app
 
