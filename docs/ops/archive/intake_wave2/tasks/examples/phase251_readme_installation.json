@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-251-README",
+  "title": "Add Installation section to README.md",
+  "description": "Update the README.md file to include clear installation instructions for the GrayWolf project. This is a critical documentation improvement for v1.0.0.",
+  "scope": [
+    "README.md"
+  ],
+  "requirements": [
+    "Include 'python3 -m venv venv' command",
+    "Include 'source venv/bin/activate' command",
+    "Include 'pip install -r requirements.txt' command",
+    "Mention OpenClaw integration"
+  ],
+  "acceptance_criteria": [
+    "README.md must contain '## Installation' header",
+    "No other files should be modified",
+    "Git commit message must reference TASK-251"
+  ],
+  "risk_level": "low"
+}
