@@ -34,4 +34,8 @@ jobs:
       - name: Run release precheck gate
         run: |
           chmod +x scripts/release_precheck.sh
-          scripts/release_precheck.sh
+          scripts/release_precheck.sh || {
+            echo "--- release_precheck_latest.md ---"
+            cat reports/release_precheck_latest.md || true
+            exit 1
+          }
