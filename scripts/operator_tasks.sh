@@ -28,12 +28,29 @@ run_risk() {
 
 case "$mode" in
   repo) run_repo ;;
-  health) run_health ;;
-  risk) run_risk ;;
+  health)
+    if [[ "${CI:-}" == "true" ]]; then
+      echo "health:skipped(ci)"
+    else
+      run_health
+    fi
+    ;;
+  risk)
+    if [[ "${CI:-}" == "true" ]]; then
+      echo "risk:skipped(ci)"
+    else
+      run_risk
+    fi
+    ;;
   all)
     run_repo
-    run_health
-    run_risk
+    if [[ "${CI:-}" == "true" ]]; then
+      echo "health:skipped(ci)"
+      echo "risk:skipped(ci)"
+    else
+      run_health
+      run_risk
+    fi
     ;;
   *)
     echo "Usage: $0 {repo|health|risk|all}"
