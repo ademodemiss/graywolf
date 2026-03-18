@@ -8,3 +8,15 @@ tmp/
 backups/
 reports/*.json
 memory/
+
+# runtime/state artifacts (no-break cleanup)
+sessions/
+tasks/queue/
+tasks/processed/
+tasks/processed_auto/
+tasks/processed_test/
+tasks/processed_test_auto/
+
+# rolling local reports
+reports/*_latest.md
+reports/no_break_cleanup_*.md
