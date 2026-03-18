@@ -12,6 +12,9 @@
 - `graywolf approve <request_id>` → pending onayı grant eder
 - `graywolf deny <request_id>` → pending onayı deny eder
 - `graywolf logs --target daemon|terminal|precheck [--lines 50]` → hızlı log okuma
+- `graywolf queue [--limit 10]` → queue/processed dosya özeti
+- `graywolf precheck` → release precheck gate
+- `graywolf monitor start|stop|status` → daemon kontrolü
 
 ## Quick Usage
 ```bash
@@ -21,7 +24,9 @@
 /home/adem/graywolf/scripts/graywolf approvals
 /home/adem/graywolf/scripts/graywolf commands
 /home/adem/graywolf/scripts/graywolf run --intent healthcheck --goal "günlük healthcheck"
-/home/adem/graywolf/scripts/graywolf logs --target daemon --lines 20
+/home/adem/graywolf/scripts/graywolf queue --limit 5
+/home/adem/graywolf/scripts/graywolf precheck
+/home/adem/graywolf/scripts/graywolf monitor status
 ```
 
 ## Note

@@ -238,6 +238,56 @@ def cmd_logs(args: argparse.Namespace) -> dict:
     }
 
 
+def cmd_queue(args: argparse.Namespace) -> dict:
+    queue_dir = ROOT / 'tasks' / 'queue'
+    processed_dir = ROOT / 'tasks' / 'processed'
+
+    q_files = sorted([p.name for p in queue_dir.glob('*.json')]) if queue_dir.exists() else []
+    p_files = sorted([p.name for p in processed_dir.glob('*.json')]) if processed_dir.exists() else []
+
+    return {
+        'status': 'ok',
+        'command': 'queue',
+        'summary': {
+            'queue_depth': len(q_files),
+            'processed_count': len(p_files),
+        },
+        'last_queued_files': q_files[-args.limit:],
+        'last_processed_files': p_files[-args.limit:],
+        'dirs': {
+            'queue': str(queue_dir),
+            'processed': str(processed_dir),
+        },
+    }
+
+
+def cmd_precheck(_args: argparse.Namespace) -> dict:
+    r = _run(['bash', str(ROOT / 'scripts' / 'release_precheck.sh')])
+    return {
+        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'command': 'precheck',
+        'report_file': str(ROOT / 'reports' / 'release_precheck_latest.md'),
+        'exec': r,
+    }
+
+
+def cmd_monitor(args: argparse.Namespace) -> dict:
+    action = args.action
+    if action == 'start':
+        r = _run(['bash', str(ROOT / 'scripts' / 'autonomy_daemon.sh'), 'start'])
+    elif action == 'stop':
+        r = _run(['bash', str(ROOT / 'scripts' / 'autonomy_daemon.sh'), 'stop'])
+    else:
+        r = _run(['bash', str(ROOT / 'scripts' / 'autonomy_daemon.sh'), 'status'])
+
+    return {
+        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'command': 'monitor',
+        'action': action,
+        'exec': r,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog='graywolf', description='Graywolf CLI')
     sub = p.add_subparsers(dest='subcommand', required=True)
@@ -280,6 +330,17 @@ def build_parser() -> argparse.ArgumentParser:
     sp_logs.add_argument('--target', choices=['daemon', 'terminal', 'precheck'], default='daemon')
     sp_logs.add_argument('--lines', type=int, default=30)
     sp_logs.set_defaults(handler=cmd_logs)
+
+    sp_queue = sub.add_parser('queue', help='Show queue/processed summary')
+    sp_queue.add_argument('--limit', type=int, default=10)
+    sp_queue.set_defaults(handler=cmd_queue)
+
+    sp_precheck = sub.add_parser('precheck', help='Run release precheck gate')
+    sp_precheck.set_defaults(handler=cmd_precheck)
+
+    sp_monitor = sub.add_parser('monitor', help='Monitor daemon controls')
+    sp_monitor.add_argument('action', choices=['start', 'stop', 'status'])
+    sp_monitor.set_defaults(handler=cmd_monitor)
 
     return p
 
