@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/home/adem/graywolf"
-PY="/home/adem/.openclaw/workspace/.venv/bin/python"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEFAULT_PY="$HOME/.openclaw/workspace/.venv/bin/python"
+if [[ -x "$DEFAULT_PY" ]]; then
+  PY="$DEFAULT_PY"
+elif [[ -x "$ROOT/.venv/bin/python" ]]; then
+  PY="$ROOT/.venv/bin/python"
+else
+  PY="python3"
+fi
 LOG="$ROOT/reports/release_precheck_latest.md"
 
 mkdir -p "$ROOT/reports"
