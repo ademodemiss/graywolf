@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="/home/adem/graywolf"
+PY="/home/adem/.openclaw/workspace/.venv/bin/python"
+
+PYTHONPATH="$ROOT" "$PY" -m core.graywolf_cli "$@"
