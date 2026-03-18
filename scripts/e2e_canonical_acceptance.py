@@ -11,8 +11,15 @@ from pathlib import Path
 from core.approval import ApprovalManager, ApprovalState
 from monitor.approval_callback_router import ApprovalCallbackRouter
 
-ROOT = Path('/home/adem/graywolf')
-PY = Path('/home/adem/.openclaw/workspace/.venv/bin/python')
+ROOT = Path(__file__).resolve().parents[1]
+_default_py = Path.home() / '.openclaw' / 'workspace' / '.venv' / 'bin' / 'python'
+_repo_py = ROOT / '.venv' / 'bin' / 'python'
+if _default_py.exists():
+    PY = _default_py
+elif _repo_py.exists():
+    PY = _repo_py
+else:
+    PY = Path('python3')
 REPORT = ROOT / 'reports' / 'e2e_canonical_acceptance_latest.md'
 
 

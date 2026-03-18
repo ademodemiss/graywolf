@@ -16,9 +16,11 @@ class ApprovalCallbackRouter:
         "approval.skip": (EventTypes.APPROVAL_SKIPPED, ApprovalState.SKIPPED),
     }
 
-    def __init__(self, bus=None, log_dir: str = "/home/adem/graywolf/logs") -> None:
+    def __init__(self, bus=None, log_dir: str | None = None) -> None:
         self.bus = bus or BUS
-        self.log_path = Path(log_dir) / "approval_callbacks.log"
+        root = Path(__file__).resolve().parents[1]
+        resolved_log_dir = Path(log_dir) if log_dir else (root / "logs")
+        self.log_path = resolved_log_dir / "approval_callbacks.log"
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
     def handle_callback(self, callback_data: str, actor: str | None = None, metadata: Mapping[str, object] | None = None) -> dict:

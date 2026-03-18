@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Callable
 
 
-EVENT_LOG = Path('/home/adem/graywolf/events/events.log')
+ROOT = Path(__file__).resolve().parents[1]
+EVENT_LOG = ROOT / 'events' / 'events.log'
 
 
 class EventBus:

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LOG_FILE="/home/adem/graywolf/logs/terminal.log"
-OUT_FILE="/home/adem/graywolf/logs/real_task_risk_summary.md"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOG_FILE="$ROOT/logs/terminal.log"
+OUT_FILE="$ROOT/logs/real_task_risk_summary.md"
 
 if [[ ! -f "$LOG_FILE" ]]; then
   echo "# Risk Summary\n\nTerminal log bulunamadı: $LOG_FILE" > "$OUT_FILE"

@@ -28,10 +28,14 @@ jobs:
 
       - name: Symlink expected venv path
         run: |
-          mkdir -p /home/adem/.openclaw/workspace
-          ln -sf "$GITHUB_WORKSPACE/.venv" /home/adem/.openclaw/workspace/.venv
+          mkdir -p "$HOME/.openclaw/workspace"
+          ln -sf "$GITHUB_WORKSPACE/.venv" "$HOME/.openclaw/workspace/.venv"
 
       - name: Run release precheck gate
         run: |
           chmod +x scripts/release_precheck.sh
-          scripts/release_precheck.sh
+          scripts/release_precheck.sh || {
+            echo "--- release_precheck_latest.md ---"
+            cat reports/release_precheck_latest.md || true
+            exit 1
+          }
