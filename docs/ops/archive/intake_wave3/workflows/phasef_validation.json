@@ -1,0 +1,19 @@
+{
+  "name": "phasef-plan-validation",
+  "description": "Plan validation scenario for Phase F: HTML site, compile modules, snapshot context.",
+  "context": "Validate natural language plan → execution pipeline",
+  "steps": [
+    {
+      "name": "generate-html-report",
+      "cmd": "cat <<'EOF' >/tmp/phasef_site.html\n<!DOCTYPE html>\n<html>\n  <head><title>Phase F Demo</title></head>\n  <body>\n    <h1>Phase F plan validation</h1>\n    <p>Generated at: $(date -u)</p>\n  </body>\n</html>\nEOF"
+    },
+    {
+      "name": "compile-core-modules",
+      "cmd": "python -m compileall -q core"
+    },
+    {
+      "name": "snapshot-learning-context",
+      "cmd": "python - <<'PY'\nfrom pathlib import Path\nimport json\ncontext = {\n    'phase': 'F validation',\n    'detail': 'basic plan executed',\n    'ts': __import__('datetime').datetime.utcnow().isoformat() + 'Z'\n}\nPath('/tmp/phasef_context.json').write_text(json.dumps(context, ensure_ascii=False, indent=2), encoding='utf-8')\nPY"
+    }
+  ]
+}

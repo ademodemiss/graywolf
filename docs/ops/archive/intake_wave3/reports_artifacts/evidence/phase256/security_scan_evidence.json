@@ -1,0 +1,7 @@
+{
+  "check_name": "security_scan",
+  "command_run": "Internal scan function on specified files",
+  "exit_code": 0,
+  "timestamp": "2026-03-07T18:13:30.995451",
+  "details": []
+}

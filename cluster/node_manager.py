@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import json
 from pathlib import Path
 
@@ -23,6 +24,33 @@ def _load_nodes() -> list[dict]:
 def _save_nodes(nodes: list[dict]):
     NODES_DB.parent.mkdir(parents=True, exist_ok=True)
     NODES_DB.write_text(json.dumps(nodes, ensure_ascii=False, indent=2), encoding='utf-8')
+
+def get_node(node_id: str) -> dict | None:
+    for node in _load_nodes():
+        if node.get('node_id') == node_id:
+            return node
+    return None
+
+
+def update_node(node_id: str, updates: dict) -> dict | None:
+    if not updates:
+        return get_node(node_id)
+    nodes = _load_nodes()
+    updated_node = None
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    for idx, node in enumerate(nodes):
+        if node.get('node_id') != node_id:
+            continue
+        node_copy = dict(node)
+        node_copy.update(updates)
+        node_copy['updated_at'] = now
+        nodes[idx] = node_copy
+        updated_node = node_copy
+        break
+    if updated_node:
+        _save_nodes(nodes)
+        BUS.publish(EventTypes.NODE_UPDATED, {'node_id': node_id, 'status': updated_node.get('status')})
+    return updated_node
 
 
 def register_node(node: dict) -> dict:

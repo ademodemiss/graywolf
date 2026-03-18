@@ -1,6 +1,8 @@
 import argparse
 import json
+import time
 from pathlib import Path
+import yaml # YAML desteği için eklendi
 
 from policies.shell_policy import ShellPolicy
 from tools.terminal_tool import TerminalTool
@@ -13,8 +15,10 @@ def load_workflow(path: str) -> dict:
 
     if file_path.suffix.lower() == ".json":
         return json.loads(file_path.read_text(encoding="utf-8"))
+    elif file_path.suffix.lower() in [".yaml", ".yml"]:
+        return yaml.safe_load(file_path.read_text(encoding="utf-8"))
 
-    raise ValueError("Şimdilik sadece JSON workflow destekleniyor.")
+    raise ValueError("Şimdilik sadece JSON ve YAML workflow destekleniyor.")
 
 
 def run_workflow(workflow: dict) -> dict:
@@ -28,12 +32,26 @@ def run_workflow(workflow: dict) -> dict:
         cmd = step.get("cmd", "")
         timeout = int(step.get("timeout", 60))
         continue_on_error = bool(step.get("continue_on_error", workflow_continue))
+        max_retries = int(step.get("max_retries", 0))
+        retry_delay_seconds = float(step.get("retry_delay_seconds", 1.0))
 
         if not cmd:
             results.append({"name": name, "status": "skipped", "reason": "missing cmd"})
             continue
 
-        result = tool.run_command(cmd, timeout=timeout)
+        attempt = 0
+        while attempt <= max_retries:
+            result = tool.run_command(cmd, timeout=timeout)
+            failed = result.get("status") in {"error", "timeout", "blocked", "needs_confirmation"}
+            
+            if not failed:
+                break # Başarılı oldu, yeniden denemeye gerek yok
+
+            # Eğer başarısız olduysa ve yeniden deneme hakkı varsa
+            if attempt < max_retries:
+                time.sleep(retry_delay_seconds * (2 ** attempt)) # Üstel backoff
+            attempt += 1
+
         step_result = {
             "name": name,
             "cmd": cmd,
@@ -44,6 +62,7 @@ def run_workflow(workflow: dict) -> dict:
             "exit_code": result.get("log", {}).get("exit_code"),
             "timeout": timeout,
             "continue_on_error": continue_on_error,
+            "attempts": attempt # Kaç deneme yapıldığını kaydet
         }
         results.append(step_result)
 

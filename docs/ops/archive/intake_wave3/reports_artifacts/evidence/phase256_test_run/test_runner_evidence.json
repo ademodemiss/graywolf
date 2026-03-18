@@ -1,0 +1,7 @@
+{
+  "check_name": "test_runner",
+  "command_run": "python3 -m unittest discover -s /home/adem/graywolf/verification/mock_tests_refactored",
+  "exit_code": 1,
+  "timestamp": "2026-03-07T18:12:17.276316",
+  "details": "--- STDOUT ---\n\n--- STDERR ---\nF.\n======================================================================\nFAIL: test_fail (test_failure.FailureTest.test_fail)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/adem/graywolf/verification/mock_tests_refactored/test_failure.py\", line 5, in test_fail\n    self.assertEqual(1, 0) # This will fail\n    ^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n"
+}
