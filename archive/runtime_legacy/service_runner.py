@@ -1,3 +1,6 @@
+# DEPRECATED: Wrapper over core.agent_loop. Do not extend.
+# Canonical runtime: core/autonomous_loop.py + scripts/run_autonomy_worker.py + scripts/autonomy_daemon.sh
+
 import argparse
 import json
 import subprocess

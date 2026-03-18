@@ -1,13 +1,27 @@
 import argparse
 import json
+from pathlib import Path
+import sys
 
-from dashboard.data import build_status_payload
-from dashboard.views import index_context
+try:
+    from dashboard.data import build_status_payload
+    from dashboard.views import index_context
+    from adapters.interface.api_adapter import submit_api_command
+    from core.runtime import handle_approval_callback
+except ModuleNotFoundError:
+    # Allow direct execution: python dashboard/server.py
+    repo_root = Path(__file__).resolve().parent.parent
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from dashboard.data import build_status_payload
+    from dashboard.views import index_context
+    from adapters.interface.api_adapter import submit_api_command
+    from core.runtime import handle_approval_callback
 
 
 def run_test_mode() -> int:
     payload = build_status_payload()
-    required = {"agent_status", "idle", "idle_minutes", "last_log_ts", "errors_24h", "last_logs", "last_workflows"}
+    required = {"agent_status", "idle", "idle_minutes", "last_log_ts", "errors_24h", "last_logs", "last_workflows", "replan_bridge", "replan_bridge_entries", "replan_bridge_processing", "learning_recovery"}
     if not required.issubset(set(payload.keys())):
         print("dashboard_test_failed")
         return 1
@@ -33,6 +47,29 @@ def create_app():
     @app.get("/api/status")
     def api_status():
         return JSONResponse(build_status_payload())
+
+    @app.post("/api/command")
+    async def api_command(request: Request):
+        body = await request.json()
+        intent = str(body.get("intent") or "").strip()
+        payload = body.get("payload") or {}
+        source = str(body.get("source") or "api")
+        if not intent:
+            return JSONResponse({"status": "error", "artifacts": {}, "errors": ["intent_required"]}, status_code=400)
+        out = submit_api_command(intent=intent, payload=payload, source=source)
+        code = 200 if out.get("status") in {"queued", "ok", "confirm_required"} else 400
+        return JSONResponse(out, status_code=code)
+
+    @app.post("/api/approval/callback")
+    async def api_approval_callback(request: Request):
+        body = await request.json()
+        callback_data = str(body.get("callback_data") or "").strip()
+        actor = str(body.get("actor") or "api")
+        if not callback_data:
+            return JSONResponse({"status": "error", "errors": ["callback_data_required"], "artifacts": {}}, status_code=400)
+        out = handle_approval_callback(callback_data=callback_data, actor=actor)
+        code = 200 if out.get("status") == "ok" else 400
+        return JSONResponse(out, status_code=code)
 
     return app
 

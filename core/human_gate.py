@@ -1,84 +1,85 @@
-import json
-import os
-import time
-from datetime import datetime
-from typing import Dict, Any, Optional
+"""Workflow komutlarını ApprovalManager üzerinden gate eden yardımcı."""
+from __future__ import annotations
+
+from typing import Iterable
+
+from core.approval import ApprovalManager, ApprovalRequest, ApprovalState
+from policies.shell_policy import PolicyDecision, ShellPolicy
+from tools.terminal_tool import TerminalTool
+
 
 class HumanGate:
-    def __init__(self, output_dir: str = "reports"):
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
+    def __init__(
+        self,
+        confirmation_timeout: int = 60,
+        terminal_tool: TerminalTool | None = None,
+        approval_manager: ApprovalManager | None = None,
+        policy: ShellPolicy | None = None,
+        requested_by: str = "workflow_engine",
+        log_dir: str = "/home/adem/graywolf/logs",
+    ) -> None:
+        policy = policy or ShellPolicy()
+        self.requested_by = requested_by
+        self.confirmation_timeout = confirmation_timeout
+        self.tool = terminal_tool or TerminalTool(policy_engine=policy, log_dir=log_dir)
+        self.manager = approval_manager or ApprovalManager(policy=policy)
 
-    def request_approval(self, task_id: str, risk_level: str, approver: str = "admin") -> Dict[str, Any]:
-        request_id = f"GATE-{task_id}-{int(time.time())}"
-        request_data = {
-            "request_id": request_id,
-            "task_id": task_id,
-            "risk_level": risk_level,
-            "approver": approver,
-            "status": "pending",
-            "timestamp": datetime.now().isoformat()
+    def execute_command(self, command: str, step_name: str | None = None, timeout: int = 60) -> dict:
+        payload_hint = step_name or "workflow_step"
+        request, reason = self.manager.evaluate_command(
+            command,
+            requested_by=self.requested_by,
+            category_hint=payload_hint,
+        )
+        if not request:
+            result = self.tool.run_command(
+                command,
+                timeout=timeout,
+                policy_decision=PolicyDecision.ALLOW,
+                policy_reason=reason,
+            )
+            result["approval_request"] = None
+            return result
+
+        if request.status == ApprovalState.GRANTED:
+            return self._run_with_approval(command, request, timeout, reason)
+
+        if request.status in {ApprovalState.DENIED, ApprovalState.SKIPPED}:
+            return self._blocked_result(request)
+
+        waited = self.manager.wait_for_status(
+            request.request_id,
+            {ApprovalState.GRANTED, ApprovalState.DENIED, ApprovalState.SKIPPED},
+            timeout_seconds=self.confirmation_timeout,
+        )
+        if not waited:
+            return {
+                "status": "blocked",
+                "stdout": "",
+                "stderr": "Approval wait timed out.",
+                "approval_request": request.to_payload(),
+            }
+
+        if waited.status == ApprovalState.GRANTED:
+            return self._run_with_approval(command, waited, timeout, "Approved")
+
+        return self._blocked_result(waited)
+
+    def _run_with_approval(self, command: str, request: ApprovalRequest, timeout: int, reason: str) -> dict:
+        result = self.tool.run_command(
+            command,
+            timeout=timeout,
+            policy_decision=PolicyDecision.ALLOW,
+            policy_reason=reason,
+        )
+        result["approval_request"] = request.to_payload()
+        return result
+
+    def _blocked_result(self, request: ApprovalRequest) -> dict:
+        status = "denied" if request.status == ApprovalState.DENIED else "skipped"
+        return {
+            "status": status,
+            "stdout": "",
+            "stderr": f"Command {status} via approval workflow.",
+            "approval_request": request.to_payload(),
         }
-
-        # In a real system, this would send a notification (e.g., Telegram) and wait.
-        # For simulation/automation purposes, we might auto-approve low risk or wait for a signal file.
-        
-        # Simulated logic:
-        if risk_level == "low":
-            request_data["status"] = "auto_approved"
-            request_data["comment"] = "Low risk auto-approved"
-        else:
-            # High risk requires manual intervention simulation
-            # We'll check for an override flag for testing purposes
-            if os.environ.get("GRAYWOLF_AUTO_APPROVE") == "true":
-                 request_data["status"] = "approved"
-                 request_data["comment"] = "Auto-approved via ENV override"
-            else:
-                 request_data["status"] = "denied"
-                 request_data["comment"] = "High risk requires explicit approval (simulation denied)"
-
-        # Log the gate decision
-        gate_log_path = os.path.join(self.output_dir, f"gate_decision_{task_id}.json")
-        with open(gate_log_path, "w") as f:
-            json.dump(request_data, f, indent=2)
-            
-        return request_data
-
-if __name__ == "__main__":
-    # Smoke Test for Phase 247
-    print("Starting HumanGate Smoke Test...")
-    
-    gate = HumanGate()
-    
-    # Test 1: Low Risk Auto-Approve
-    result_low = gate.request_approval("TASK-SMOKE-247-LOW", "low")
-    print(f"Low Risk Result: {result_low['status']}")
-    
-    # Test 2: High Risk Deny (Default)
-    result_high = gate.request_approval("TASK-SMOKE-247-HIGH", "high")
-    print(f"High Risk Result: {result_high['status']}")
-    
-    # Test 3: High Risk Approve (with ENV)
-    os.environ["GRAYWOLF_AUTO_APPROVE"] = "true"
-    result_override = gate.request_approval("TASK-SMOKE-247-OVERRIDE", "high")
-    print(f"Override Result: {result_override['status']}")
-    
-    # Verify
-    if (result_low["status"] == "auto_approved" and 
-        result_high["status"] == "denied" and 
-        result_override["status"] == "approved"):
-        print("Smoke Test PASSED ✅")
-        
-        # Generate official report
-        report = {
-            "phase": 247,
-            "status": "completed",
-            "module": "core/human_gate.py",
-            "gate_samples": [result_low, result_high, result_override],
-            "timestamp": datetime.now().isoformat()
-        }
-        with open("reports/human_approval_gate_report.json", "w") as f:
-            json.dump(report, f, indent=2)
-    else:
-        print("Smoke Test FAILED ❌")
-        exit(1)

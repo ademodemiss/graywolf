@@ -1,0 +1,37 @@
+name: release-precheck
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["*"]
+  push:
+    branches: ["main", "master", "task/**"]
+
+jobs:
+  precheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare venv
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+
+      - name: Symlink expected venv path
+        run: |
+          mkdir -p /home/adem/.openclaw/workspace
+          ln -sf "$GITHUB_WORKSPACE/.venv" /home/adem/.openclaw/workspace/.venv
+
+      - name: Run release precheck gate
+        run: |
+          chmod +x scripts/release_precheck.sh
+          scripts/release_precheck.sh

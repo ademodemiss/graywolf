@@ -15,7 +15,7 @@ def _write_system_log(text: str, log_dir: str = "/home/adem/graywolf/logs"):
         f.write(json.dumps({"ts": ts, "event": text}, ensure_ascii=False) + "\n")
 
 
-def send_telegram_message(text: str) -> dict:
+def send_telegram_message(text: str, reply_markup: dict | None = None) -> dict:
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
@@ -23,9 +23,13 @@ def send_telegram_message(text: str) -> dict:
         _write_system_log("TELEGRAM_NOT_CONFIGURED")
         return {"status": "skipped", "reason": "TELEGRAM_NOT_CONFIGURED"}
 
+    payload = {"chat_id": chat_id, "text": text}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
-    req = urllib.request.Request(url, data=payload, method="POST")
+    payload_data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=payload_data, method="POST")
     req.add_header("Content-Type", "application/json")
 
     try:

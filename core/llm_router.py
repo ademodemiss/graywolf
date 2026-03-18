@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from adapters.llm.llm_adapter import LLMAdapter
 from core.llm_factory import create_llm
+from core.cost_tracker import CostTracker
 
 
 class RateLimitError(Exception):
@@ -27,6 +28,7 @@ class RoutedLLMAdapter(LLMAdapter):
         self.fallback = fallback
         self.primary_name = primary_name
         self.fallback_name = fallback_name
+        self.cost_tracker = CostTracker(log_dir="/home/adem/graywolf/logs/")
 
     def _normalize_error(self, err: Exception) -> Exception:
         if isinstance(err, self.RETRYABLE_ERRORS):
@@ -46,16 +48,62 @@ class RoutedLLMAdapter(LLMAdapter):
             f"LLM_ROUTER_FALLBACK primary={self.primary_name} fallback={self.fallback_name} reason={reason.__class__.__name__}:{reason}"
         )
 
+    def _normalize_response(self, raw):
+        if isinstance(raw, tuple):
+            if len(raw) == 3:
+                return raw[0], int(raw[1] or 0), int(raw[2] or 0)
+            if len(raw) >= 1:
+                return raw[0], 0, 0
+        return raw, 0, 0
+
     def _with_fallback(self, fn_name: str, *args, **kwargs):
+        current_provider = self.primary_name
+        current_llm_adapter = self.primary
+
         try:
-            fn = getattr(self.primary, fn_name)
-            return fn(*args, **kwargs)
+            fn = getattr(current_llm_adapter, fn_name)
+            raw = fn(*args, **kwargs)
+            response_text, prompt_tokens, completion_tokens = self._normalize_response(raw)
+
+            cost = self.cost_tracker.calculate_cost(
+                current_provider,
+                getattr(current_llm_adapter, "model_name", "unknown"),
+                prompt_tokens,
+                completion_tokens,
+            )
+            self.cost_tracker.log_cost(
+                current_provider,
+                getattr(current_llm_adapter, "model_name", "unknown"),
+                prompt_tokens,
+                completion_tokens,
+                cost,
+            )
+            return response_text
         except Exception as err:
             normalized = self._normalize_error(err)
             if isinstance(normalized, self.RETRYABLE_ERRORS):
                 self._fallback_log(normalized)
-                fn = getattr(self.fallback, fn_name)
-                return fn(*args, **kwargs)
+                current_provider = self.fallback_name
+                current_llm_adapter = self.fallback
+
+                fn = getattr(current_llm_adapter, fn_name)
+                raw = fn(*args, **kwargs)
+                response_text, prompt_tokens, completion_tokens = self._normalize_response(raw)
+
+                cost = self.cost_tracker.calculate_cost(
+                    current_provider,
+                    getattr(current_llm_adapter, "model_name", "unknown"),
+                    prompt_tokens,
+                    completion_tokens,
+                )
+                self.cost_tracker.log_cost(
+                    current_provider,
+                    getattr(current_llm_adapter, "model_name", "unknown"),
+                    prompt_tokens,
+                    completion_tokens,
+                    cost,
+                )
+                return response_text
             raise
 
     def generate_response(self, prompt: str, **kwargs) -> str:
@@ -67,9 +115,20 @@ class RoutedLLMAdapter(LLMAdapter):
         return {"router": "primary_fallback", "primary": primary_info, "fallback": fallback_info}
 
     def stream_response(self, prompt: str, **kwargs):
-        result = self._with_fallback("stream_response", prompt, **kwargs)
-        for chunk in result:
-            yield chunk
+        # Stream path: do not force tuple unpacking; fallback only on stream init errors.
+        try:
+            stream = self.primary.stream_response(prompt, **kwargs)
+            for chunk in stream:
+                yield chunk
+            return
+        except Exception as err:
+            normalized = self._normalize_error(err)
+            if not isinstance(normalized, self.RETRYABLE_ERRORS):
+                raise
+            self._fallback_log(normalized)
+            stream = self.fallback.stream_response(prompt, **kwargs)
+            for chunk in stream:
+                yield chunk
 
     def chat_completion(self, messages: list[dict], **kwargs) -> str:
         return self._with_fallback("chat_completion", messages, **kwargs)

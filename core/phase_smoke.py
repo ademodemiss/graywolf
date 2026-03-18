@@ -10,8 +10,8 @@ PHASE_IMPORTS = {
     16: ["policies.shell_policy", "tools.terminal_tool", "core.event_bus"],
     17: ["plugins.plugin_loader", "agents", "events"],
     18: ["dashboard"],
-    19: ["policies.shell_policy", "core.agent_loop"],
-    20: ["core.agent_loop"],
+    19: ["policies.shell_policy", "core.autonomous_loop"],
+    20: ["core.autonomous_loop"],
 }
 
 

@@ -27,6 +27,10 @@ def collect_metrics() -> dict:
     runtimes = []
     retries = 0
     total = max(len(tasks), 1)
+    failed = sum(1 for t in tasks if t.get('status') == 'failed')
+    running = sum(1 for t in tasks if t.get('status') == 'running')
+    attempts_total = sum(int(t.get('attempts', 0)) for t in tasks)
+
     for t in tasks:
         retries += max(int(t.get('attempts', 0)) - 1, 0)
         q = _iso_to_dt(t.get('created_at'))
@@ -40,7 +44,11 @@ def collect_metrics() -> dict:
     queue_latency_ms = int(sum(latencies) / len(latencies)) if latencies else 0
     avg_task_runtime_ms = int(sum(runtimes) / len(runtimes)) if runtimes else 0
     retry_rate = round(retries / total, 4)
-    dead_letter_rate = round(len(dead) / total, 4)
+    dead_letter_count = len(dead)
+    dead_letter_rate = round(dead_letter_count / total, 4)
+    failure_rate = round(failed / total, 4)
+    attempt_rate = round(attempts_total / total, 4)
+    unhappy_tasks = failed + dead_letter_count
 
     active_nodes = sum(1 for n in nodes if str(n.get('status', '')).lower() == 'running')
     active_tasks = sum(int(n.get('active_tasks', 0) or 0) for n in nodes)
@@ -64,11 +72,17 @@ def collect_metrics() -> dict:
         'queue_latency_ms': queue_latency_ms,
         'avg_task_runtime_ms': avg_task_runtime_ms,
         'retry_rate': retry_rate,
+        'failure_rate': failure_rate,
         'dead_letter_rate': dead_letter_rate,
+        'dead_letter_count': dead_letter_count,
+        'unhappy_tasks': unhappy_tasks,
+        'attempt_rate': attempt_rate,
         'node_idle_time': node_idle_time,
         'scheduler_delay_ms': scheduler_delay_ms,
         'active_nodes': active_nodes,
         'active_tasks': active_tasks,
+        'running_tasks': running,
+        'failed_tasks': failed,
     }
 
 

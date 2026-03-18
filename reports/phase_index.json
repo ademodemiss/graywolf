@@ -1,0 +1,74 @@
+[
+  {
+    "phase": "203",
+    "status": "ARCHIVE",
+    "doc": null,
+    "plan": "planning/phase203_plan.md"
+  },
+  {
+    "phase": "204",
+    "status": "ARCHIVE",
+    "doc": null,
+    "plan": "planning/phase204_plan.md"
+  },
+  {
+    "phase": "263",
+    "status": "ARCHIVE",
+    "doc": "docs/phase263_replan.md",
+    "plan": null
+  },
+  {
+    "phase": "264",
+    "status": "ARCHIVE",
+    "doc": "docs/phase264_monitoring.md",
+    "plan": "planning/phase264_plan.md"
+  },
+  {
+    "phase": "265",
+    "status": "ACTIVE",
+    "doc": null,
+    "plan": "planning/phase265_plan.md"
+  },
+  {
+    "phase": "266",
+    "status": "ACTIVE",
+    "doc": "docs/phase266_monitoring.md",
+    "plan": "planning/phase266_plan.md"
+  },
+  {
+    "phase": "267",
+    "status": "ACTIVE",
+    "doc": "docs/phase267_monitoring.md",
+    "plan": "planning/phase267_plan.md"
+  },
+  {
+    "phase": "268",
+    "status": "ACTIVE",
+    "doc": "docs/phase268_monitoring.md",
+    "plan": "planning/phase268_plan.md"
+  },
+  {
+    "phase": "269",
+    "status": "ACTIVE",
+    "doc": "docs/phase269_monitoring.md",
+    "plan": "planning/phase269_plan.md"
+  },
+  {
+    "phase": "270",
+    "status": "ACTIVE",
+    "doc": "docs/phase270_monitoring.md",
+    "plan": "planning/phase270_plan.md"
+  },
+  {
+    "phase": "271",
+    "status": "ACTIVE",
+    "doc": "docs/phase271_monitoring.md",
+    "plan": "planning/phase271_plan.md"
+  },
+  {
+    "phase": "272",
+    "status": "ACTIVE",
+    "doc": "docs/phase272_monitoring.md",
+    "plan": null
+  }
+]

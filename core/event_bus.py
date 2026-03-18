@@ -79,5 +79,8 @@ def main():
     print(json.dumps({'status': 'idle'}, ensure_ascii=False))
 
 
+BUS = EventBus()
+
+
 if __name__ == '__main__':
     main()

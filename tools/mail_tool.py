@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import base64
 import datetime
@@ -6,6 +8,7 @@ import os
 import smtplib
 from dataclasses import asdict, dataclass
 from email.message import EmailMessage
+from pathlib import Path
 
 try:
     from tools.provider_validation import validate_provider_env
@@ -215,6 +218,40 @@ class MailTool:
         }
 
 
+def _cfg_to_env_map(cfg: dict) -> dict[str, str]:
+    env: dict[str, str] = {
+        "SMTP_HOST": cfg.get("host", ""),
+        "SMTP_PORT": str(cfg.get("port", "")) if cfg.get("port") else "",
+        "SMTP_USER": cfg.get("user", ""),
+        "SMTP_FROM": cfg.get("from_addr", cfg.get("user", "")),
+        "SMTP_AUTH_METHOD": cfg.get("auth_method", "").lower(),
+    }
+    if env["SMTP_AUTH_METHOD"] == "oauth2":
+        env["SMTP_OAUTH2_TOKEN"] = cfg.get("oauth2_token", "")
+    else:
+        env["SMTP_PASS"] = cfg.get("password", "")
+    return env
+
+
+def _load_env_file(path: str | None) -> tuple[dict[str, str], str | None]:
+    if not path:
+        return {}, None
+    env_path = Path(path).expanduser()
+    if not env_path.exists():
+        return {}, f"{path} not found"
+    result: dict[str, str] = {}
+    with env_path.open(encoding="utf-8") as handle:
+        for line in handle:
+            cleaned = line.strip()
+            if not cleaned or cleaned.startswith("#"):
+                continue
+            if "=" not in cleaned:
+                continue
+            key, value = cleaned.split("=", 1)
+            result[key.strip()] = value.strip()
+    return result, None
+
+
 def main():
     parser = argparse.ArgumentParser(description="GrayWolf Mail Tool")
     parser.add_argument("--action", choices=["draft", "confirm", "send", "check-smtp", "test-smtp", "validate-provider"], required=True)
@@ -232,6 +269,7 @@ def main():
     parser.add_argument("--smtp-auth-method", choices=["basic", "oauth2"])
     parser.add_argument("--smtp-oauth2-token")
     parser.add_argument("--provider", choices=["gmail", "outlook"])
+    parser.add_argument("--env-file", help="Optional .env path for provider validation and check-smtp")
     args = parser.parse_args()
 
     tool = MailTool()
@@ -244,36 +282,47 @@ def main():
         "auth_method": args.smtp_auth_method,
         "oauth2_token": args.smtp_oauth2_token,
     }
+    env_file_data, env_note = _load_env_file(args.env_file)
 
     if args.action == "check-smtp":
         cfg, missing = tool._resolve_smtp(smtp_cfg)
-        if missing:
-            print(
-                json.dumps(
-                    {
-                        "status": "warning",
-                        "warning": "missing_smtp_env",
-                        "missing": missing,
-                        "fallback": "dry_run",
-                        "auth_method": cfg.get("auth_method", "basic"),
-                    },
-                    ensure_ascii=False,
-                )
-            )
+        provider = args.provider or env_file_data.get("SMTP_PROVIDER")
+        validation_env: dict[str, str] = {}
+        if args.env_file and not env_note:
+            validation_env.update(env_file_data)
+        validation_env.update(_cfg_to_env_map(cfg))
+        if provider:
+            validation_result = validate_provider_env(provider, validation_env)
         else:
-            print(
-                json.dumps(
-                    {"status": "ok", "smtp_env": "configured", "auth_method": cfg.get("auth_method", "basic")},
-                    ensure_ascii=False,
-                )
-            )
+            validation_result = {"status": "error", "error": "missing_provider"}
+        if env_note:
+            validation_result["env_note"] = env_note
+        status = validation_result.get("status", "ok")
+        if missing and status == "ok":
+            status = "warning"
+        response = {
+            "status": status,
+            "missing": missing,
+            "auth_method": cfg.get("auth_method", "basic"),
+            "provider": provider,
+            "validation": validation_result,
+        }
+        if missing:
+            response["fallback"] = "dry_run"
+        if env_note:
+            response["env_note"] = env_note
+        print(json.dumps(response, ensure_ascii=False))
         return
 
     if args.action == "validate-provider":
         if not args.provider:
             print(json.dumps({"status": "error", "error": "missing_provider"}, ensure_ascii=False))
             return
-        print(json.dumps(validate_provider_env(args.provider), ensure_ascii=False))
+        validation_env = env_file_data if args.env_file and not env_note else None
+        result = validate_provider_env(args.provider, validation_env)
+        if env_note:
+            result["env_note"] = env_note
+        print(json.dumps(result, ensure_ascii=False))
         return
 
     if args.action == "test-smtp":

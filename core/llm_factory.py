@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=os.path.expanduser('~/.graywolf/.env'))
+
 def create_llm(provider: str = "gemini"):
     p = (provider or "gemini").lower()
     if p == "codex":

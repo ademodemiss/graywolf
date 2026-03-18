@@ -1,0 +1,248 @@
+{
+  "totals": {
+    "tracked": 414,
+    "modified": 31,
+    "untracked": 143
+  },
+  "roots": {
+    "tests": {
+      "tracked": 10,
+      "modified": 0,
+      "untracked": 25
+    },
+    ".": {
+      "tracked": 16,
+      "modified": 4,
+      "untracked": 16
+    },
+    "monitor": {
+      "tracked": 11,
+      "modified": 2,
+      "untracked": 18
+    },
+    "tools": {
+      "tracked": 8,
+      "modified": 7,
+      "untracked": 11
+    },
+    "core": {
+      "tracked": 35,
+      "modified": 7,
+      "untracked": 9
+    },
+    "docs": {
+      "tracked": 7,
+      "modified": 1,
+      "untracked": 12
+    },
+    "planning": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 12
+    },
+    "verification": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 8
+    },
+    "multi_agent": {
+      "tracked": 11,
+      "modified": 0,
+      "untracked": 6
+    },
+    "reports": {
+      "tracked": 6,
+      "modified": 0,
+      "untracked": 5
+    },
+    "tasks": {
+      "tracked": 5,
+      "modified": 0,
+      "untracked": 5
+    },
+    "adapters": {
+      "tracked": 5,
+      "modified": 2,
+      "untracked": 2
+    },
+    "dashboard": {
+      "tracked": 8,
+      "modified": 3,
+      "untracked": 1
+    },
+    "policies": {
+      "tracked": 2,
+      "modified": 1,
+      "untracked": 3
+    },
+    "workflows": {
+      "tracked": 8,
+      "modified": 1,
+      "untracked": 2
+    },
+    "self_improve": {
+      "tracked": 5,
+      "modified": 0,
+      "untracked": 2
+    },
+    "agent": {
+      "tracked": 0,
+      "modified": 0,
+      "untracked": 1
+    },
+    "analysis": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 1
+    },
+    "cluster": {
+      "tracked": 17,
+      "modified": 1,
+      "untracked": 0
+    },
+    "data": {
+      "tracked": 0,
+      "modified": 0,
+      "untracked": 1
+    },
+    "deployment": {
+      "tracked": 1,
+      "modified": 0,
+      "untracked": 1
+    },
+    "infra": {
+      "tracked": 6,
+      "modified": 1,
+      "untracked": 0
+    },
+    "phase204": {
+      "tracked": 0,
+      "modified": 0,
+      "untracked": 1
+    },
+    "scripts": {
+      "tracked": 0,
+      "modified": 0,
+      "untracked": 1
+    },
+    "workflow_engine": {
+      "tracked": 9,
+      "modified": 1,
+      "untracked": 0
+    },
+    "agents": {
+      "tracked": 16,
+      "modified": 0,
+      "untracked": 0
+    },
+    "ai": {
+      "tracked": 63,
+      "modified": 0,
+      "untracked": 0
+    },
+    "autofix": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 0
+    },
+    "backups": {
+      "tracked": 1,
+      "modified": 0,
+      "untracked": 0
+    },
+    "capabilities": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 0
+    },
+    "coding": {
+      "tracked": 6,
+      "modified": 0,
+      "untracked": 0
+    },
+    "execution": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 0
+    },
+    "goals": {
+      "tracked": 3,
+      "modified": 0,
+      "untracked": 0
+    },
+    "governance": {
+      "tracked": 3,
+      "modified": 0,
+      "untracked": 0
+    },
+    "infrastructure": {
+      "tracked": 21,
+      "modified": 0,
+      "untracked": 0
+    },
+    "jobqueue": {
+      "tracked": 12,
+      "modified": 0,
+      "untracked": 0
+    },
+    "knowledge": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 0
+    },
+    "learning": {
+      "tracked": 9,
+      "modified": 0,
+      "untracked": 0
+    },
+    "metrics": {
+      "tracked": 1,
+      "modified": 0,
+      "untracked": 0
+    },
+    "patching": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 0
+    },
+    "plugins": {
+      "tracked": 10,
+      "modified": 0,
+      "untracked": 0
+    },
+    "post_release": {
+      "tracked": 66,
+      "modified": 0,
+      "untracked": 0
+    },
+    "queue": {
+      "tracked": 8,
+      "modified": 0,
+      "untracked": 0
+    },
+    "release": {
+      "tracked": 1,
+      "modified": 0,
+      "untracked": 0
+    },
+    "research": {
+      "tracked": 6,
+      "modified": 0,
+      "untracked": 0
+    },
+    "timeline": {
+      "tracked": 2,
+      "modified": 0,
+      "untracked": 0
+    }
+  },
+  "high_churn_roots": [
+    ".",
+    "core",
+    "docs",
+    "monitor",
+    "planning",
+    "tests",
+    "tools"
+  ]
+}

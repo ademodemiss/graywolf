@@ -1,3 +1,6 @@
+# DEPRECATED: Secondary loop path. Do not extend.
+# Canonical runtime: core/autonomous_loop.py + scripts/run_autonomy_worker.py + scripts/autonomy_daemon.sh
+
 import argparse
 import json
 import re
@@ -9,9 +12,9 @@ from policies.shell_policy import ShellPolicy
 from tools.terminal_tool import TerminalTool
 from core.idle_seed import seed_next_batch_if_idle
 
-ROADMAP = Path('/home/adem/graywolf/docs/roadmap.md')
-STATE = Path('/home/adem/graywolf/memory/agent_loop_state.json')
-LOG_PATH = Path('/home/adem/graywolf/logs/terminal.log')
+ROADMAP = Path(__file__).parent.parent / 'docs' / 'roadmap.md'
+STATE = Path(__file__).parent.parent / 'memory' / 'agent_loop_state.json'
+LOG_PATH = Path(__file__).parent.parent / 'logs' / 'terminal.log'
 
 
 def normalize_milestone(s: str) -> str:
