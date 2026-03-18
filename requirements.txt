@@ -1,0 +1,14 @@
+openai
+google-generativeai
+pydantic
+requests
+urllib3
+python-dotenv
+# Diğer temel bağımlılıklar buraya eklenebilir.
+openpyxl
+pytest
+yfinance
+google-auth-oauthlib
+google-api-python-client
+google-auth-httplib2
+pyyaml

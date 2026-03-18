@@ -1,0 +1,5 @@
+name: self-improve-log-analysis
+description: GrayWolf terminal loglarını analiz eder, hataları tespit eder ve iyileştirme önerileri sunar.
+steps:
+  - name: analyze_logs_with_llm
+    cmd: 'python3 tools/self_improve_tool.py --action analyze_logs --log_path /home/adem/graywolf/logs/terminal.log --context "GrayWolf terminal loglarının analizi. Performans iyileştirmeleri, onay/replan olayları ve hataları azaltma hedefleniyor." --include_replan --replan_log_path /home/adem/graywolf/logs/replan_notifier.log --report_path /home/adem/graywolf/logs/self_improve_reports.log'
