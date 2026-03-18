@@ -27,8 +27,15 @@ from core.task_queue import TaskQueue
 from monitor.approval_callback_router import ApprovalCallbackRouter
 from monitor.approval_health import get_approval_callback_summary, get_replan_stats
 
-ROOT = Path("/home/adem/graywolf")
-PY = Path("/home/adem/.openclaw/workspace/.venv/bin/python")
+ROOT = Path(os.environ.get("GRAYWOLF_ROOT", Path(__file__).resolve().parents[1]))
+_DEFAULT_PY = Path.home() / ".openclaw" / "workspace" / ".venv" / "bin" / "python"
+_REPO_PY = ROOT / ".venv" / "bin" / "python"
+if _DEFAULT_PY.exists():
+    PY = _DEFAULT_PY
+elif _REPO_PY.exists():
+    PY = _REPO_PY
+else:
+    PY = Path("python3")
 WORKER = ROOT / "scripts" / "run_autonomy_worker.py"
 DAEMON = ROOT / "scripts" / "autonomy_daemon.sh"
 SESSION_STORE = SessionStateStore(root=str(ROOT / "sessions"))
