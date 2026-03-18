@@ -1,9 +1,20 @@
 # GrayWolf Projesi
 
 ## Amaç
-GrayWolf, Ubuntu VPS üzerinde çalışan, tamamen yeni ve bağımsız bir ajan sistemidir. Güvenli, genişleyebilir ve 7/24 arka planda çalışabilen bir altyapı olarak teslim edilecektir.
+Graywolf, kullanıcının bilgisayarında veya VPS üzerinde 7/24 çalışan, doğal dil ile iletişim kuran ve verilen işleri gerçekten icra eden bir yapay zekâ asistandır.
+
+Amaç sadece cevap vermek değil:
+**kullanıcının yerine işi almak, güvenli şekilde yapmak ve sonucu anlaşılır biçimde sunmak.**
+
+Kısa vizyon:
+- OpenClaw benzeri asistan deneyimi
+- Terminal/script/otomasyon ile gerçek execution
+- Hata olduğunda toparlama (replan/recovery)
+
+**ChatGPT konuşur, Graywolf işi yapar.**
 
 ## Hızlı Navigasyon (Toparlanmış)
+- Kanonik proje durumu: `docs/PROJECT_CANONICAL_STATE.md`
 - Repo haritası: `docs/REPO_MAP.md`
 - Operasyon merkezi: `docs/ops/OPERATIONS.md`
 - Toparlama planı: `REPO_CLEANUP_PLAN.md`

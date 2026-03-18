@@ -66,7 +66,7 @@ Referans raporlar:
 2. Çift workflow execution hattı
    - `workflows/runner.py`
    - `workflow_engine/workflow_executor.py`
-3. Komut intake prototipleri runtime’a tam bağlı değil
+3. Komut intake katmanı aktif ve runtime hattına bağlı
    - `agent/command_parser.py`
    - `agent/task_decomposer.py`
    - `agent/dispatcher.py`
@@ -79,7 +79,7 @@ Referans raporlar:
 - Unified interface layer (CLI/Telegram/API → tek command bus)
 - Tek ve zorunlu command->task->response sözleşmesi
 
-Not (2026-03-17 karar): `agent/*` intake prototipleri canonical runtime hattına bağlanmayacak; freeze/deprecate edilip cleanup turunda `archive/` altına taşınacak.
+Güncel durum (2026-03-18): `agent/*` command intake hattı yeniden aktifleştirildi ve runtime command bus ile çalışır/testli hâle getirildi.
 
 ---
 
@@ -116,6 +116,10 @@ Cleanup durumu (2026-03-17): Runtime/workflow/intake çakışmaları archive ta�
 1. `docs/PROJECT_CANONICAL_STATE.md` (bu dosya)
 2. `docs/GRAYWOLF_V2_CANONICAL_ARCHITECTURE.md`
 3. `docs/DEPRECATION_MATRIX.md`
+4. `docs/REPO_MAP.md`
+5. `docs/ops/OPERATIONS.md`
+6. `reports/release_candidate_handoff_2026-03-17.md`
+PRECATION_MATRIX.md`
 4. `docs/REPO_MAP.md`
 5. `docs/ops/OPERATIONS.md`
 6. `reports/release_candidate_handoff_2026-03-17.md`
