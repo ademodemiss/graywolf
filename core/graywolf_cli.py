@@ -24,6 +24,22 @@ CLI_COMMANDS_FILE = ROOT / 'docs' / 'CLI_COMMANDS.md'
 DAEMON_LOG = ROOT / 'logs' / 'autonomy_daemon.log'
 TERMINAL_LOG = ROOT / 'logs' / 'terminal.log'
 
+HELP_MAP = {
+    'status': 'graywolf status [--session-id ID] -> runtime/daemon/queue/approval özeti',
+    'doctor': 'graywolf doctor -> release precheck gate çalıştırır',
+    'onboard': 'graywolf onboard -> daemon + operator smoke checks',
+    'approvals': 'graywolf approvals -> pending/granted/denied listesi',
+    'commands': 'graywolf commands -> tüm komutları listeler',
+    'run': 'graywolf run --intent <intent> [--goal TEXT] [--payload JSON] [--source SRC] [--session-id ID]',
+    'approve': 'graywolf approve <request_id> [--actor NAME] -> pending onayı grant eder',
+    'deny': 'graywolf deny <request_id> [--actor NAME] -> pending onayı deny eder',
+    'logs': 'graywolf logs --target daemon|terminal|precheck [--lines N] -> log gösterir',
+    'queue': 'graywolf queue [--limit N] -> queue/processed özet',
+    'precheck': 'graywolf precheck -> release precheck gate',
+    'monitor': 'graywolf monitor start|stop|status -> daemon kontrol',
+    'report': 'graywolf report daily|weekly -> ops summary raporu üretir',
+}
+
 
 def _run(cmd: list[str]) -> dict:
     p = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -288,6 +304,33 @@ def cmd_monitor(args: argparse.Namespace) -> dict:
     }
 
 
+def cmd_help(args: argparse.Namespace) -> dict:
+    topic = (args.topic or '').strip()
+    if not topic:
+        return {
+            'status': 'ok',
+            'command': 'help',
+            'topics': sorted(HELP_MAP.keys()),
+            'hint': 'graywolf help <komut> kullan',
+        }
+
+    text = HELP_MAP.get(topic)
+    if not text:
+        return {
+            'status': 'error',
+            'command': 'help',
+            'errors': [f'unknown_topic:{topic}'],
+            'topics': sorted(HELP_MAP.keys()),
+        }
+
+    return {
+        'status': 'ok',
+        'command': 'help',
+        'topic': topic,
+        'usage': text,
+    }
+
+
 def cmd_report(args: argparse.Namespace) -> dict:
     kind = args.kind
 
@@ -409,6 +452,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp_report = sub.add_parser('report', help='Generate ops summary report')
     sp_report.add_argument('kind', choices=['daily', 'weekly'])
     sp_report.set_defaults(handler=cmd_report)
+
+    sp_help = sub.add_parser('help', help='Show usage for a specific command')
+    sp_help.add_argument('topic', nargs='?', default='')
+    sp_help.set_defaults(handler=cmd_help)
 
     return p
 

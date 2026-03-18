@@ -6,6 +6,7 @@
 - `graywolf onboard` → ilk kurulum/smoke kontrolleri
 - `graywolf approvals` → pending/granted/denied approval özeti
 - `graywolf commands` → bu komut listesini terminalde gösterir
+- `graywolf help [komut]` → komut bazlı kısa kullanım rehberi
 
 ## Fast Operations
 - `graywolf run --intent <intent> [--goal "..."] [--payload '{...}']` → hızlı komut tetikler
@@ -24,6 +25,7 @@
 /home/adem/graywolf/scripts/graywolf onboard
 /home/adem/graywolf/scripts/graywolf approvals
 /home/adem/graywolf/scripts/graywolf commands
+/home/adem/graywolf/scripts/graywolf help run
 /home/adem/graywolf/scripts/graywolf run --intent healthcheck --goal "günlük healthcheck"
 /home/adem/graywolf/scripts/graywolf queue --limit 5
 /home/adem/graywolf/scripts/graywolf precheck
