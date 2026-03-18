@@ -27,6 +27,10 @@ run_step() {
     echo "- status: PASS" >> "$LOG"
   else
     echo "- status: FAIL" >> "$LOG"
+    if [[ "$name" == "E2E Canonical Acceptance" && -f "$ROOT/reports/e2e_canonical_acceptance_latest.md" ]]; then
+      out+=$'\n--- e2e report ---\n'
+      out+="$(cat "$ROOT/reports/e2e_canonical_acceptance_latest.md")"
+    fi
   fi
   echo '```' >> "$LOG"
   echo "$out" >> "$LOG"
