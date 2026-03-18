@@ -149,6 +149,7 @@ def status(session_id: str) -> dict:
     processed_files = glob.glob(str(PROCESSED_DIR / "*.json"))
 
     pending_map = _load_pending_approvals()
+    pending_only = {k: v for k, v in pending_map.items() if (v or {}).get("status") == "pending"}
 
     return {
         "status": "ok",
@@ -163,8 +164,8 @@ def status(session_id: str) -> dict:
         "daemon": daemon_status,
         "approval": {
             "pending_runtime_requests": pending_runtime,
-            "pending_command_approvals": len(pending_map),
-            "pending_request_ids": sorted(list(pending_map.keys()))[-5:],
+            "pending_command_approvals": len(pending_only),
+            "pending_request_ids": sorted(list(pending_only.keys()))[-5:],
             "replan_health": replan,
             "callbacks": callbacks,
         },
