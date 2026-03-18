@@ -15,6 +15,7 @@
 - `graywolf queue [--limit 10]` → queue/processed dosya özeti
 - `graywolf precheck` → release precheck gate
 - `graywolf monitor start|stop|status` → daemon kontrolü
+- `graywolf report daily|weekly` → operasyon özet raporu üretir
 
 ## Quick Usage
 ```bash
@@ -27,6 +28,7 @@
 /home/adem/graywolf/scripts/graywolf queue --limit 5
 /home/adem/graywolf/scripts/graywolf precheck
 /home/adem/graywolf/scripts/graywolf monitor status
+/home/adem/graywolf/scripts/graywolf report daily
 ```
 
 ## Note

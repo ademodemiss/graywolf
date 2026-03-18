@@ -288,6 +288,70 @@ def cmd_monitor(args: argparse.Namespace) -> dict:
     }
 
 
+def cmd_report(args: argparse.Namespace) -> dict:
+    kind = args.kind
+
+    status_run = _run([PY, '-m', 'core.runtime', 'status', '--session-id', 'graywolf-report'])
+    queue_run = _run([str(ROOT / 'scripts' / 'graywolf'), 'queue', '--limit', '5'])
+
+    status_json = None
+    queue_json = None
+    if status_run['stdout']:
+        try:
+            status_json = json.loads(status_run['stdout'].splitlines()[-1])
+        except Exception:
+            status_json = {'raw': status_run['stdout']}
+    if queue_run['stdout']:
+        try:
+            queue_json = json.loads(queue_run['stdout'].splitlines()[-1])
+        except Exception:
+            queue_json = {'raw': queue_run['stdout']}
+
+    report_file = ROOT / 'reports' / f'{kind}_ops_summary_latest.md'
+    report_file.parent.mkdir(parents=True, exist_ok=True)
+
+    runtime = status_json if isinstance(status_json, dict) else {}
+    approval = runtime.get('approval', {}) if isinstance(runtime, dict) else {}
+    queue = runtime.get('queue', {}) if isinstance(runtime, dict) else {}
+
+    lines = [
+        f'# Graywolf {kind.capitalize()} Ops Summary',
+        '',
+        f'- generated_at: {datetime.now().isoformat()}',
+        f"- daemon_status: {((runtime.get('daemon') or {}).get('status') if isinstance(runtime, dict) else 'unknown')}",
+        f"- queue_depth: {queue.get('queue_depth', 'n/a')}",
+        f"- processed_count: {queue.get('processed_count', 'n/a')}",
+        f"- pending_command_approvals: {approval.get('pending_command_approvals', 'n/a')}",
+        '',
+        '## Last processed tasks',
+    ]
+
+    for item in (queue.get('last_5_processed') or []):
+        lines.append(f"- {item.get('task_id')} | intent={item.get('intent')} | status={item.get('status')} | source={item.get('source')}")
+
+    if not (queue.get('last_5_processed') or []):
+        lines.append('- none')
+
+    lines += [
+        '',
+        '## Command outputs',
+        f"- runtime status exit: {status_run.get('exit_code')}",
+        f"- queue summary exit: {queue_run.get('exit_code')}",
+        '',
+    ]
+
+    report_file.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+    return {
+        'status': 'ok' if status_run['exit_code'] == 0 else 'error',
+        'command': 'report',
+        'kind': kind,
+        'report_file': str(report_file),
+        'runtime_status': status_json,
+        'queue_status': queue_json,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog='graywolf', description='Graywolf CLI')
     sub = p.add_subparsers(dest='subcommand', required=True)
@@ -341,6 +405,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp_monitor = sub.add_parser('monitor', help='Monitor daemon controls')
     sp_monitor.add_argument('action', choices=['start', 'stop', 'status'])
     sp_monitor.set_defaults(handler=cmd_monitor)
+
+    sp_report = sub.add_parser('report', help='Generate ops summary report')
+    sp_report.add_argument('kind', choices=['daily', 'weekly'])
+    sp_report.set_defaults(handler=cmd_report)
 
     return p
 
