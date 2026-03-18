@@ -1,40 +1,32 @@
-# Graywolf CLI Commands
+# Graywolf CLI Commands (V1.0)
 
 ## Core
-- `graywolf status` → runtime/daemon/queue/approval durum özeti
-- `graywolf doctor` → release precheck (zorunlu gate) çalıştırır
-- `graywolf onboard` → ilk kurulum/smoke kontrolleri
-- `graywolf approvals` → pending/granted/denied approval özeti
-- `graywolf commands` → bu komut listesini terminalde gösterir
-- `graywolf help [komut]` → komut bazlı kısa kullanım rehberi
+- `graywolf status` → runtime/daemon/queue/approval özeti
+- `graywolf precheck` → release gate
+- `graywolf doctor` → precheck alias
+- `graywolf monitor start|stop|status` → daemon kontrol
+- `graywolf queue [--limit N]` → queue/processed özeti
+- `graywolf approvals` → pending/granted/denied özeti
 
-## Fast Operations
-- `graywolf run --intent <intent> [--goal "..."] [--payload '{...}']` → hızlı komut tetikler
-- `graywolf approve <request_id>` → pending onayı grant eder
-- `graywolf deny <request_id>` → pending onayı deny eder
-- `graywolf logs --target daemon|terminal|precheck [--lines 50]` → hızlı log okuma
-- `graywolf queue [--limit 10]` → queue/processed dosya özeti
-- `graywolf precheck` → release precheck gate
-- `graywolf monitor start|stop|status` → daemon kontrolü
-- `graywolf report daily|weekly` → operasyon özet raporu üretir
+## Execution
+- `graywolf run --intent <intent> [--goal "..."] [--payload '{...}']`
+- `graywolf approve <request_id>`
+- `graywolf deny <request_id>`
 
-## Quick Usage
+## Observability
+- `graywolf logs --target daemon|terminal|precheck [--lines N]`
+- `graywolf report daily|weekly`
+
+## Help
+- `graywolf commands`
+- `graywolf help [komut]`
+
+## Quick
 ```bash
-/home/adem/graywolf/scripts/graywolf status
-/home/adem/graywolf/scripts/graywolf doctor
-/home/adem/graywolf/scripts/graywolf onboard
-/home/adem/graywolf/scripts/graywolf approvals
-/home/adem/graywolf/scripts/graywolf commands
-/home/adem/graywolf/scripts/graywolf help run
-/home/adem/graywolf/scripts/graywolf run --intent healthcheck --goal "günlük healthcheck"
-/home/adem/graywolf/scripts/graywolf queue --limit 5
-/home/adem/graywolf/scripts/graywolf precheck
-/home/adem/graywolf/scripts/graywolf monitor status
-/home/adem/graywolf/scripts/graywolf report daily
-```
-
-## Note
-Komut unutursan sadece şunu çalıştır:
-```bash
-/home/adem/graywolf/scripts/graywolf commands
+scripts/graywolf status
+scripts/graywolf precheck
+scripts/graywolf run --intent healthcheck --goal "smoke"
+scripts/graywolf approvals
+scripts/graywolf queue --limit 5
+scripts/graywolf report daily
 ```
