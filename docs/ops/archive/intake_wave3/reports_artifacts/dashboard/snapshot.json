@@ -1,0 +1,12 @@
+{
+  "status": "online",
+  "timestamp": "2026-03-17T08:40:01.575455",
+  "metrics": {
+    "active_tasks": 0,
+    "completed_tasks": 6,
+    "total_tasks": 6,
+    "last_task_id": "TASK-AUTO-FINAL-3",
+    "last_commit_hash": "mock_commit_hash_123",
+    "last_report_id": "mock_report_xyz"
+  }
+}

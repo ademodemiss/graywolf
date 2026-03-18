@@ -1,0 +1,27 @@
+{
+  "mission_id": "MISSION-1772796727",
+  "goal": "Build a Hello World App",
+  "steps": [
+    {
+      "status": "planned",
+      "plan": [
+        "Analyze requirements",
+        "Write code",
+        "Run tests",
+        "Submit PR"
+      ],
+      "agent": "planner"
+    },
+    {
+      "status": "coded",
+      "code": "def hello_world():\n    print('Hello World')",
+      "agent": "coder"
+    },
+    {
+      "status": "approved",
+      "comments": "Looks good",
+      "agent": "reviewer"
+    }
+  ],
+  "status": "completed"
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/verification/mock_compile_files/good.py",
+    "timestamp": "2026-03-07T18:11:48.263764",
+    "file": "/home/adem/graywolf/verification/mock_compile_files/good.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/verification/mock_compile_files/bad.py",
+    "timestamp": "2026-03-07T18:11:48.268004",
+    "file": "/home/adem/graywolf/verification/mock_compile_files/bad.py",
+    "status": "failed",
+    "exit_code": 1,
+    "details": "  File \"/home/adem/graywolf/verification/mock_compile_files/bad.py\", line 1\n    print('hello'\n         ^\nSyntaxError: '(' was never closed\n"
+  }
+]

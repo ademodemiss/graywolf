@@ -1,0 +1,16 @@
+{
+  "check_name": "unified_verification_report",
+  "timestamp": "2026-03-07T18:13:30.995654",
+  "target_directory": "/home/adem/graywolf/multi_agent",
+  "overall_status": "failed",
+  "summary": {
+    "compile_check": "passed",
+    "test_runner": "failed",
+    "security_scan": "passed"
+  },
+  "evidence_files": [
+    "/home/adem/graywolf/reports/evidence/phase256/compile_check_evidence.json",
+    "/home/adem/graywolf/reports/evidence/phase256/test_runner_evidence.json",
+    "/home/adem/graywolf/reports/evidence/phase256/security_scan_evidence.json"
+  ]
+}

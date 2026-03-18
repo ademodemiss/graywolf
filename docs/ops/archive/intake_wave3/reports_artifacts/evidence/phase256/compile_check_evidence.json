@@ -1,0 +1,155 @@
+[
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/tester.py",
+    "timestamp": "2026-03-07T18:13:30.839835",
+    "file": "/home/adem/graywolf/multi_agent/tester.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/reviewer.py",
+    "timestamp": "2026-03-07T18:13:30.843778",
+    "file": "/home/adem/graywolf/multi_agent/reviewer.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/guardrails.py",
+    "timestamp": "2026-03-07T18:13:30.848987",
+    "file": "/home/adem/graywolf/multi_agent/guardrails.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/context_bus_v2.py",
+    "timestamp": "2026-03-07T18:13:30.852278",
+    "file": "/home/adem/graywolf/multi_agent/context_bus_v2.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/coordinator.py",
+    "timestamp": "2026-03-07T18:13:30.855670",
+    "file": "/home/adem/graywolf/multi_agent/coordinator.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/failure_analysis.py",
+    "timestamp": "2026-03-07T18:13:30.859070",
+    "file": "/home/adem/graywolf/multi_agent/failure_analysis.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/evidence_merge.py",
+    "timestamp": "2026-03-07T18:13:30.862555",
+    "file": "/home/adem/graywolf/multi_agent/evidence_merge.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/planner.py",
+    "timestamp": "2026-03-07T18:13:30.863870",
+    "file": "/home/adem/graywolf/multi_agent/planner.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/conflict_resolver.py",
+    "timestamp": "2026-03-07T18:13:30.866620",
+    "file": "/home/adem/graywolf/multi_agent/conflict_resolver.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/role_contracts.py",
+    "timestamp": "2026-03-07T18:13:30.868154",
+    "file": "/home/adem/graywolf/multi_agent/role_contracts.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/agent_roles.py",
+    "timestamp": "2026-03-07T18:13:30.873536",
+    "file": "/home/adem/graywolf/multi_agent/agent_roles.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/parallel_guard.py",
+    "timestamp": "2026-03-07T18:13:30.875323",
+    "file": "/home/adem/graywolf/multi_agent/parallel_guard.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/coder.py",
+    "timestamp": "2026-03-07T18:13:30.877913",
+    "file": "/home/adem/graywolf/multi_agent/coder.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/certification.py",
+    "timestamp": "2026-03-07T18:13:30.881629",
+    "file": "/home/adem/graywolf/multi_agent/certification.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/fleet_dispatch.py",
+    "timestamp": "2026-03-07T18:13:30.883681",
+    "file": "/home/adem/graywolf/multi_agent/fleet_dispatch.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/rollback_arbitration.py",
+    "timestamp": "2026-03-07T18:13:30.884572",
+    "file": "/home/adem/graywolf/multi_agent/rollback_arbitration.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  },
+  {
+    "check_name": "compile_check",
+    "command_run": "python3 -m py_compile /home/adem/graywolf/multi_agent/__init__.py",
+    "timestamp": "2026-03-07T18:13:30.885278",
+    "file": "/home/adem/graywolf/multi_agent/__init__.py",
+    "status": "success",
+    "exit_code": 0,
+    "details": "Compilation successful."
+  }
+]
