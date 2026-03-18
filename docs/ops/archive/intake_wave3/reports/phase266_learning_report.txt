@@ -1,0 +1,11 @@
+Command: cd /home/adem/graywolf && /home/adem/.openclaw/workspace/.venv/bin/python monitor/replan_learning_reporter.py --telegram
+Timestamp: 2026-03-13 14:06 Europe/Berlin
+Output:
+Phase 267 Learning Feedback Özeti
+Son 24 saat içinde 0 job incelendi.
+Başarı oranı: veri yok
+Reliability score: veri yok
+Failures: 0 | Pending: 0
+Son statü: scheduled | feedback: critical failure
+Son follow-up notları: critical failure
+telegram = {'status': 'skipped', 'reason': 'TELEGRAM_NOT_CONFIGURED'}
