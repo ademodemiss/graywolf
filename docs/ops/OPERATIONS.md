@@ -1,62 +1,54 @@
-# Operations Hub (Single-Page)
+# Graywolf Operations (V1.0)
 
-Bu dosya günlük operasyon için tek sayfa referanstır.
+Bu dosya günlük operasyon için tek sayfa runbook'tur.
 
-## Release Öncesi Zorunlu Gate
+## 1) Günlük Hızlı Kontrol
 ```bash
-/home/adem/graywolf/scripts/release_precheck.sh
+scripts/graywolf status
+scripts/graywolf precheck
+scripts/graywolf monitor status
 ```
 
-Bu komut sırasıyla şunları koşar ve herhangi biri fail olursa release'i durdurur:
-1. `scripts/deprecation_guard.sh`
-2. `scripts/operator_tasks.sh all`
-3. `scripts/e2e_canonical_acceptance.py`
+## 2) Komut Çalıştırma
+```bash
+scripts/graywolf run --intent healthcheck --goal "günlük sağlık kontrolü"
+```
 
+## 3) Approval Akışı
+- Pending liste:
+```bash
+scripts/graywolf approvals
+```
+- Onay ver:
+```bash
+scripts/graywolf approve <request_id>
+```
+- Reddet:
+```bash
+scripts/graywolf deny <request_id>
+```
+
+## 4) Queue / Log / Report
+```bash
+scripts/graywolf queue --limit 10
+scripts/graywolf logs --target daemon --lines 50
+scripts/graywolf report daily
+```
+
+## 5) Release Gate (zorunlu)
+```bash
+scripts/graywolf precheck
+```
 Rapor: `reports/release_precheck_latest.md`
 
-## Queue Hijyeni (test/prod ayrımı)
-```bash
-PYTHONPATH=/home/adem/graywolf /home/adem/.openclaw/workspace/.venv/bin/python /home/adem/graywolf/scripts/queue_hygiene.py --apply
-```
-- Test/acceptance görevlerini `tasks/processed_test` / `tasks/queue_test` altına ayırır.
-- Rapor: `reports/queue_hygiene_latest.md`
+## 6) Incident Mini-Protokol
+1. `status` + `monitor status`
+2. `logs --target daemon`
+3. gerekirse `monitor stop` -> `monitor start`
+4. `precheck`
+5. `report daily`
 
-## Ops Automation
-```bash
-/home/adem/graywolf/scripts/ops_automation.sh daily
-/home/adem/graywolf/scripts/ops_automation.sh prerelease
-```
-- Ayrıntı: `docs/ops/OPS_AUTOMATION.md`
-
-## Günlük Sağlık Kontrolü
-1. Dashboard test:
-```bash
-python3 /home/adem/graywolf/dashboard/server.py --test
-```
-2. Replan health:
-```bash
-PYTHONPATH=/home/adem/graywolf /home/adem/.openclaw/workspace/.venv/bin/python /home/adem/graywolf/monitor/replan_health_reporter.py --telegram
-```
-3. Trend dry-run:
-```bash
-PYTHONPATH=/home/adem/graywolf /home/adem/.openclaw/workspace/.venv/bin/python /home/adem/graywolf/monitor/learning_recovery_trend.py --dry-run
-```
-
-## Kritik Zincir (Sıralı)
-1. `replan_health_reporter.py`
-2. `replan_learning_reporter.py`
-3. `replan_learning_autopilot.py`
-4. `learning_reliability_trends.py`
-5. `learning_recovery_coordinator.py`
-6. `learning_recovery_inspector.py`
-7. `learning_recovery_trend.py`
-
-## Notlar
-- Cronlar kontrollü açılmalı (önce 1-2 job, sonra kademeli).
-- Şüpheli/çok büyük duration değerleri trend monitor tarafında normalize edilir.
-- Telegram konfig yoksa scriptler `TELEGRAM_NOT_CONFIGURED` ile güvenli şekilde skip eder.
-
-## Kanonik Durum Dosyaları
-- Repo haritası: `docs/REPO_MAP.md`
-- Toparlama planı: `REPO_CLEANUP_PLAN.md`
-- Envanter raporu: `reports/repo_inventory.json`
+## 7) Operasyon Kuralları
+- Runtime/state artefaktlarını commit etme (`sessions/*`, `tasks/queue*`, rolling reports)
+- Riskli intentlerde approval beklemeden işleme geçme
+- Her düzeltme turunda precheck çalıştır
