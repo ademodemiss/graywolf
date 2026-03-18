@@ -32,3 +32,4 @@ Graywolf v1.0 çekirdeği (assistant experience + secure execution runtime).
 
 ## Release Kararı
 V1.0 çekirdeği için release-ready baseline oluşturuldu.
+Ayrıntılı karar kaydı: `reports/RELEASE_DECISION_2026-03-18.md`
