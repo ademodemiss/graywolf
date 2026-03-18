@@ -8,11 +8,13 @@ from datetime import datetime
 from uuid import uuid4
 
 from core.task_queue import TaskQueue
+from policies.intent_policy import IntentDecision, IntentPolicy
 
 
 class CommandBus:
-    def __init__(self, queue_dir: str, processed_dir: str):
+    def __init__(self, queue_dir: str, processed_dir: str, policy: IntentPolicy | None = None):
         self.queue = TaskQueue(queue_dir=queue_dir, processed_dir=processed_dir)
+        self.policy = policy or IntentPolicy()
 
     @staticmethod
     def build_envelope(intent: str, payload: dict, source: str = "cli", command_id: str | None = None) -> dict:
@@ -40,6 +42,36 @@ class CommandBus:
         }
 
     def submit(self, envelope: dict) -> dict:
+        intent = envelope.get("intent")
+        payload = envelope.get("payload") or {}
+        policy_result = self.policy.evaluate(intent, payload)
+
+        policy_block = {
+            "decision": policy_result.decision.value,
+            "reason": policy_result.reason,
+            "risk": policy_result.risk,
+        }
+
+        if policy_result.decision == IntentDecision.DENY:
+            return {
+                "status": "denied",
+                "command": envelope,
+                "task": {},
+                "artifacts": {},
+                "errors": [policy_result.reason],
+                "policy": policy_block,
+            }
+
+        if policy_result.decision == IntentDecision.CONFIRM:
+            return {
+                "status": "confirm_required",
+                "command": envelope,
+                "task": {},
+                "artifacts": {},
+                "errors": [],
+                "policy": policy_block,
+            }
+
         task = self.envelope_to_task(envelope)
         artifact = self.queue.add_task(task)
         return {
@@ -54,6 +86,7 @@ class CommandBus:
                 "queued_task_file": artifact,
             },
             "errors": [],
+            "policy": policy_block,
         }
 
 

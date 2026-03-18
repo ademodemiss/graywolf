@@ -18,10 +18,13 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 from core.approval import ApprovalManager
 from core.command_bus import CommandBus
 from core.session_state import SessionStateStore
+from core.task_queue import TaskQueue
+from monitor.approval_callback_router import ApprovalCallbackRouter
 from monitor.approval_health import get_approval_callback_summary, get_replan_stats
 
 ROOT = Path("/home/adem/graywolf")
@@ -31,6 +34,7 @@ DAEMON = ROOT / "scripts" / "autonomy_daemon.sh"
 SESSION_STORE = SessionStateStore(root=str(ROOT / "sessions"))
 QUEUE_DIR = ROOT / "tasks" / "queue"
 PROCESSED_DIR = ROOT / "tasks" / "processed"
+PENDING_APPROVALS_FILE = ROOT / "sessions" / "pending_approvals.json"
 
 
 def _exec(cmd: list[str]) -> dict:
@@ -41,6 +45,20 @@ def _exec(cmd: list[str]) -> dict:
         "stdout": (p.stdout or "").strip(),
         "stderr": (p.stderr or "").strip(),
     }
+
+
+def _load_pending_approvals() -> dict:
+    if not PENDING_APPROVALS_FILE.exists():
+        return {}
+    try:
+        return json.loads(PENDING_APPROVALS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_pending_approvals(data: dict) -> None:
+    PENDING_APPROVALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PENDING_APPROVALS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def run_once(session_id: str) -> dict:
@@ -130,6 +148,8 @@ def status(session_id: str) -> dict:
     queue_files = glob.glob(str(QUEUE_DIR / "*.json"))
     processed_files = glob.glob(str(PROCESSED_DIR / "*.json"))
 
+    pending_map = _load_pending_approvals()
+
     return {
         "status": "ok",
         "runtime": "graywolf-runtime-kernel-v1",
@@ -143,6 +163,8 @@ def status(session_id: str) -> dict:
         "daemon": daemon_status,
         "approval": {
             "pending_runtime_requests": pending_runtime,
+            "pending_command_approvals": len(pending_map),
+            "pending_request_ids": sorted(list(pending_map.keys()))[-5:],
             "replan_health": replan,
             "callbacks": callbacks,
         },
@@ -184,6 +206,23 @@ def submit_command(intent: str, payload_text: str, source: str, session_id: str)
     )
     envelope = bus.build_envelope(intent=intent, payload=payload, source=source)
     out = bus.submit(envelope)
+
+    if out.get("status") == "confirm_required":
+        request_id = f"APR-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:6]}"
+        pending = _load_pending_approvals()
+        pending[request_id] = {
+            "session_id": session_id,
+            "envelope": envelope,
+            "created_at": datetime.now().isoformat(),
+            "policy": out.get("policy") or {},
+            "status": "pending",
+        }
+        _save_pending_approvals(pending)
+        out["approval_request"] = {
+            "request_id": request_id,
+            "status": "pending",
+        }
+
     task_id = ((out.get("task") or {}).get("task_id")) if isinstance(out, dict) else None
     SESSION_STORE.record(
         session_id,
@@ -194,13 +233,64 @@ def submit_command(intent: str, payload_text: str, source: str, session_id: str)
     return out
 
 
+def handle_approval_callback(callback_data: str, actor: str = "runtime") -> dict:
+    router = ApprovalCallbackRouter()
+    try:
+        cb = router.handle_callback(callback_data, actor=actor, metadata={"source": "runtime"})
+    except Exception as e:
+        return {"status": "error", "errors": [f"invalid_callback: {e}"], "artifacts": {}}
+
+    parts = callback_data.split(":", 1)
+    request_id = parts[1] if len(parts) == 2 else ""
+    action = parts[0] if parts else ""
+
+    pending = _load_pending_approvals()
+    item = pending.get(request_id)
+    if not item:
+        return {"status": "error", "errors": ["pending_request_not_found"], "callback": cb, "artifacts": {}}
+
+    if action == "approval.grant":
+        env = item.get("envelope") or {}
+        bus = CommandBus(
+            queue_dir=str(ROOT / "tasks" / "queue"),
+            processed_dir=str(ROOT / "tasks" / "processed"),
+        )
+        task = bus.envelope_to_task(env)
+        q = TaskQueue(queue_dir=str(ROOT / "tasks" / "queue"), processed_dir=str(ROOT / "tasks" / "processed"))
+        queued_file = q.add_task(task)
+        queued = {
+            "status": "queued",
+            "task": {"task_id": task.get("task_id"), "intent": task.get("intent"), "goal": task.get("goal")},
+            "artifacts": {"queued_task_file": queued_file},
+            "policy": {"decision": "CONFIRM", "reason": "approved via callback", "risk": "high"},
+            "errors": [],
+        }
+        item["status"] = "granted"
+        item["resolved_at"] = datetime.now().isoformat()
+        item["queued_result"] = queued
+        pending[request_id] = item
+        _save_pending_approvals(pending)
+        return {"status": "ok", "callback": cb, "approval_request": {"request_id": request_id, "status": "granted"}, "queued": queued}
+
+    if action in {"approval.deny", "approval.skip"}:
+        item["status"] = "denied" if action == "approval.deny" else "skipped"
+        item["resolved_at"] = datetime.now().isoformat()
+        pending[request_id] = item
+        _save_pending_approvals(pending)
+        return {"status": "ok", "callback": cb, "approval_request": {"request_id": request_id, "status": item["status"]}}
+
+    return {"status": "error", "errors": ["unsupported_action"], "callback": cb}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Graywolf Runtime Kernel")
-    ap.add_argument("action", choices=["run-once", "start", "stop", "status", "submit-command"], help="Runtime action")
+    ap.add_argument("action", choices=["run-once", "start", "stop", "status", "submit-command", "approval-callback"], help="Runtime action")
     ap.add_argument("--intent", default="")
     ap.add_argument("--payload", default="{}", help="JSON payload for submit-command")
     ap.add_argument("--source", default="cli")
     ap.add_argument("--session-id", default="default", help="Runtime session id")
+    ap.add_argument("--callback-data", default="", help="approval callback data, e.g. approval.grant:APR-...")
+    ap.add_argument("--actor", default="runtime")
     args = ap.parse_args()
 
     if args.action == "run-once":
@@ -215,12 +305,17 @@ def main() -> int:
             SESSION_STORE.record(args.session_id, command={"action": "submit-command"}, result=out, error="intent_required")
         else:
             out = submit_command(args.intent, args.payload, args.source, args.session_id)
+    elif args.action == "approval-callback":
+        if not args.callback_data:
+            out = {"status": "error", "artifacts": {}, "errors": ["callback_data_required"]}
+        else:
+            out = handle_approval_callback(args.callback_data, actor=args.actor)
     else:
         out = status(args.session_id)
 
     payload = {"ts": datetime.now().isoformat(), **out}
     print(json.dumps(payload, ensure_ascii=False))
-    return 0 if out.get("status") in {"ok", "queued"} else 1
+    return 0 if out.get("status") in {"ok", "queued", "confirm_required"} else 1
 
 
 if __name__ == "__main__":

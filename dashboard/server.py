@@ -7,6 +7,7 @@ try:
     from dashboard.data import build_status_payload
     from dashboard.views import index_context
     from adapters.interface.api_adapter import submit_api_command
+    from core.runtime import handle_approval_callback
 except ModuleNotFoundError:
     # Allow direct execution: python dashboard/server.py
     repo_root = Path(__file__).resolve().parent.parent
@@ -15,6 +16,7 @@ except ModuleNotFoundError:
     from dashboard.data import build_status_payload
     from dashboard.views import index_context
     from adapters.interface.api_adapter import submit_api_command
+    from core.runtime import handle_approval_callback
 
 
 def run_test_mode() -> int:
@@ -55,7 +57,18 @@ def create_app():
         if not intent:
             return JSONResponse({"status": "error", "artifacts": {}, "errors": ["intent_required"]}, status_code=400)
         out = submit_api_command(intent=intent, payload=payload, source=source)
-        code = 200 if out.get("status") in {"queued", "ok"} else 400
+        code = 200 if out.get("status") in {"queued", "ok", "confirm_required"} else 400
+        return JSONResponse(out, status_code=code)
+
+    @app.post("/api/approval/callback")
+    async def api_approval_callback(request: Request):
+        body = await request.json()
+        callback_data = str(body.get("callback_data") or "").strip()
+        actor = str(body.get("actor") or "api")
+        if not callback_data:
+            return JSONResponse({"status": "error", "errors": ["callback_data_required"], "artifacts": {}}, status_code=400)
+        out = handle_approval_callback(callback_data=callback_data, actor=actor)
+        code = 200 if out.get("status") == "ok" else 400
         return JSONResponse(out, status_code=code)
 
     return app
