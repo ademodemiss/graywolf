@@ -1,0 +1,123 @@
+# NO_BREAK_CLEANUP_INVENTORY
+ts: 2026-03-18T21:46:44+03:00
+
+## git status --short
+ M .env
+ M .env.example
+ M CURRENT_STATE.md
+ M NEXT_ACTION.md
+ M README.md
+ M ROADMAP.md
+ M cluster/node_manager.py
+ M docs/roadmap.md
+ M infra/incident_response.py
+ M reports/daily_ops_summary_latest.md
+ M reports/e2e_canonical_acceptance_latest.md
+ M reports/queue_hygiene_latest.md
+ M reports/release_precheck_latest.md
+ D tools/discovery_engine.py
+ M workflows/runner.py
+?? agent/
+?? analysis/plan_validator.py
+?? core/cost_tracker.py
+?? dashboard/dashboard_generator.py
+?? data/
+?? deployment/README.md
+?? docs/learning_recovery_runbook.md
+?? docs/ops/POST_RELEASE_24H_MONITORING_PLAN.md
+?? docs/ops/archive/no_break_intake/
+?? docs/phase263_replan.md
+?? docs/phase264_monitoring.md
+?? docs/phase266_monitoring.md
+?? docs/phase267_monitoring.md
+?? docs/phase268_monitoring.md
+?? docs/phase269_monitoring.md
+?? docs/phase270_monitoring.md
+?? docs/phase271_monitoring.md
+?? docs/phase272_monitoring.md
+?? monitor/learning_feedback_guide.md
+?? multi_agent/agent_roles.py
+?? multi_agent/coder.py
+?? multi_agent/coordinator.py
+?? multi_agent/planner.py
+?? multi_agent/reviewer.py
+?? multi_agent/tester.py
+?? phase204/
+?? planning/phase203_detection.md
+?? planning/phase203_plan.md
+?? planning/phase204_plan.md
+?? planning/phase204_requirements.md
+?? planning/phase264_plan.md
+?? planning/phase265_plan.md
+?? planning/phase266_plan.md
+?? planning/phase267_plan.md
+?? planning/phase268_plan.md
+?? planning/phase269_plan.md
+?? planning/phase270_plan.md
+?? planning/phase271_plan.md
+?? policies/shell_policy.md
+?? policies/shell_policy_enhancements.md
+?? policies/shell_policy_tests.md
+?? reports/MERGE_READY_PACKET_2026-03-18.md
+?? reports/autonomy_runs/
+?? reports/dashboard/
+?? reports/evidence/
+?? reports/no_break_cleanup_inventory_latest.md
+?? reports/no_break_cleanup_plan_latest.md
+?? reports/phase266_learning_report.txt
+?? requirements.txt
+?? scripts/README.md
+?? scripts/run_phase_251.py
+?? scripts/run_phase_252.py
+?? scripts/run_phase_253.py
+?? scripts/tool_smoke_test.sh
+?? self_improve/error_analyzer.py
+?? self_improve/repair_loop.py
+?? sessions/
+?? tasks/code/
+?? tasks/examples/phase251_readme_installation.json
+?? tasks/processed/
+?? tasks/processed_auto/
+?? tasks/processed_test/
+?? tasks/processed_test_auto/
+?? tests/phase268/
+?? tests/phase270/
+?? tests/test_analysis_tool.py
+?? tests/test_approval_callback_router.py
+?? tests/test_approval_flow.py
+?? tests/test_approval_health.py
+?? tests/test_approval_wait.py
+?? tests/test_code_tool.py
+?? tests/test_e2e_financial_report.py
+?? tests/test_error_analyzer.py
+?? tests/test_excel_tool.py
+?? tests/test_human_gate.py
+?? tests/test_mail_tool.py
+?? tests/test_orchestrator_replan.py
+?? tests/test_recovery_cycle.py
+?? tests/test_recovery_dispatcher.py
+?? tests/test_replan_health_reporter.py
+?? tests/test_replan_notifier.py
+?? tests/test_replan_self_improve_bridge.py
+?? tests/test_replan_self_improve_scheduler.py
+?? tests/test_self_improve_orchestrator.py
+?? tests/test_self_improve_tool.py
+?? tests/test_token_estimator.py
+?? tools/excel_tool.py
+?? tools/graywolf_setup.py
+?? tools/self_improve_tool.py
+?? verification/compile_check.py
+?? verification/mock_compile_files/
+?? verification/mock_scan_files/
+?? verification/mock_tests/
+?? verification/mock_tests_refactored/
+?? verification/security_scan.py
+?? verification/test_runner.py
+?? verification/verification_manager.py
+?? workflows/phasef_validation.json
+?? workflows/self_improve_log_analysis.yaml
+
+## tracked_modified_count
+14
+## untracked_count
+99
