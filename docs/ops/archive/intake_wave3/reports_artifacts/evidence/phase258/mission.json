@@ -1,0 +1,1 @@
+{"goal": "Test", "steps": [{"status": "processed", "agent": "planner"}, {"status": "processed", "agent": "coder"}, {"status": "processed", "agent": "reviewer"}], "status": "completed"}

@@ -1,0 +1,10 @@
+{
+  "task_id": "TASK-251-README",
+  "branch": "task/TASK-251-readme-installation",
+  "commit_hash": "8013f2c76cfae798149e730e3fbbaae7ae4dc6e1",
+  "changed_files": [
+    "README.md"
+  ],
+  "status": "completed",
+  "timestamp": "2026-03-06T11:27:18.562086"
+}

@@ -1,0 +1,7 @@
+{
+  "check_name": "test_runner",
+  "command_run": "python3 -m unittest discover -s /home/adem/graywolf/multi_agent",
+  "exit_code": 5,
+  "timestamp": "2026-03-07T18:13:30.993460",
+  "details": "--- STDOUT ---\nWarning: openclaw_api.default_api not found. Using a mock default_api.\n\n--- STDERR ---\n\n----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nNO TESTS RAN\n"
+}

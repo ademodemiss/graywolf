@@ -1,0 +1,116 @@
+# Repo Dosya Sınıflandırma (Working Tree)
+
+- modified_tracked: 13
+- untracked: 93
+
+## 1) Aktifte Kalacak (keep)
+- .env  # local config (commit dışı)
+- .env.example  # local config (commit dışı)
+- agent/__init__.py
+- agent/tool_handlers.py
+- cluster/node_manager.py
+- core/cost_tracker.py
+- dashboard/dashboard_generator.py
+- docs/learning_recovery_runbook.md
+- docs/ops/POST_RELEASE_24H_MONITORING_PLAN.md
+- docs/phase263_replan.md
+- docs/phase264_monitoring.md
+- docs/phase266_monitoring.md
+- docs/phase267_monitoring.md
+- docs/phase268_monitoring.md
+- docs/phase269_monitoring.md
+- docs/phase270_monitoring.md
+- docs/phase271_monitoring.md
+- docs/phase272_monitoring.md
+- docs/roadmap.md
+- infra/incident_response.py
+- monitor/learning_feedback_guide.md
+- policies/shell_policy.md
+- policies/shell_policy_enhancements.md
+- policies/shell_policy_tests.md
+- scripts/README.md
+- scripts/run_phase_251.py
+- scripts/run_phase_252.py
+- scripts/run_phase_253.py
+- scripts/tool_smoke_test.sh
+- tests/phase268/
+- tests/phase270/
+- tests/test_analysis_tool.py
+- tests/test_approval_callback_router.py
+- tests/test_approval_flow.py
+- tests/test_approval_health.py
+- tests/test_approval_wait.py
+- tests/test_code_tool.py
+- tests/test_e2e_financial_report.py
+- tests/test_error_analyzer.py
+- tests/test_excel_tool.py
+- tests/test_human_gate.py
+- tests/test_mail_tool.py
+- tests/test_orchestrator_replan.py
+- tests/test_recovery_cycle.py
+- tests/test_recovery_dispatcher.py
+- tests/test_replan_health_reporter.py
+- tests/test_replan_notifier.py
+- tests/test_replan_self_improve_bridge.py
+- tests/test_replan_self_improve_scheduler.py
+- tests/test_self_improve_orchestrator.py
+- tests/test_self_improve_tool.py
+- tests/test_token_estimator.py
+- tools/excel_tool.py
+- tools/graywolf_setup.py
+- tools/self_improve_tool.py
+- workflows/phasef_validation.json
+- workflows/runner.py
+- workflows/self_improve_log_analysis.yaml
+
+## 2) Archive/History Adayı
+- CURRENT_STATE.md  # moved-stub/legacy ref
+- NEXT_ACTION.md  # moved-stub/legacy ref
+- ROADMAP.md  # moved-stub/legacy ref
+- data/  # runtime data/artifact
+- multi_agent/agent_roles.py  # experimental track
+- multi_agent/coder.py  # experimental track
+- multi_agent/coordinator.py  # experimental track
+- multi_agent/planner.py  # experimental track
+- multi_agent/reviewer.py  # experimental track
+- multi_agent/tester.py  # experimental track
+- phase204/  # planning/history
+- planning/phase203_detection.md  # planning/history
+- planning/phase203_plan.md  # planning/history
+- planning/phase204_plan.md  # planning/history
+- planning/phase204_requirements.md  # planning/history
+- planning/phase264_plan.md  # planning/history
+- planning/phase265_plan.md  # planning/history
+- planning/phase266_plan.md  # planning/history
+- planning/phase267_plan.md  # planning/history
+- planning/phase268_plan.md  # planning/history
+- planning/phase269_plan.md  # planning/history
+- planning/phase270_plan.md  # planning/history
+- planning/phase271_plan.md  # planning/history
+- reports/MERGE_READY_PACKET_2026-03-18.md  # report artifact
+- reports/autonomy_runs/  # report artifact
+- reports/daily_ops_summary_latest.md  # rolling artifact
+- reports/dashboard/  # report artifact
+- reports/e2e_canonical_acceptance_latest.md  # rolling artifact
+- reports/evidence/  # report artifact
+- reports/phase266_learning_report.txt  # report artifact
+- reports/queue_hygiene_latest.md  # rolling artifact
+- reports/release_precheck_latest.md  # rolling artifact
+- reports/repo_classification_snapshot_2026-03-18.md  # report artifact
+- verification/compile_check.py  # verification fixture/tooling
+- verification/mock_compile_files/  # verification fixture/tooling
+- verification/mock_scan_files/  # verification fixture/tooling
+- verification/mock_tests/  # verification fixture/tooling
+- verification/mock_tests_refactored/  # verification fixture/tooling
+- verification/security_scan.py  # verification fixture/tooling
+- verification/test_runner.py  # verification fixture/tooling
+- verification/verification_manager.py  # verification fixture/tooling
+
+## 3) Drop-Review Adayı (önce onay)
+- analysis/plan_validator.py
+- deployment/README.md
+- requirements.txt
+- self_improve/error_analyzer.py
+- self_improve/repair_loop.py
+- tasks/code/
+- tasks/examples/phase251_readme_installation.json

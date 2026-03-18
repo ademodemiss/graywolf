@@ -1,0 +1,13 @@
+{
+  "task_id": "TASK-FAIL-2",
+  "error": "Connection timeout",
+  "analysis": {
+    "error_type": "timeout",
+    "severity": "low",
+    "suggested_action": "retry_with_backoff",
+    "confidence": 0.9
+  },
+  "action_taken": "scheduled_retry",
+  "status": "retrying",
+  "timestamp": "2026-03-06T12:18:37.918134"
+}
