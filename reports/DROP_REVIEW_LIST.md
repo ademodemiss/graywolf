@@ -28,4 +28,4 @@ Kural: Bu listedeki dosyalar **hemen silinmez**. Önce referans/iş değeri doğ
 - `deployment/README.md` -> ARCHIVE (`docs/ops/archive/intake_wave2/deployment/README.md`)
 - `tasks/code/` -> ARCHIVE (`docs/ops/archive/intake_wave2/tasks/code`)
 - `tasks/examples/phase251_readme_installation.json` -> ARCHIVE (`docs/ops/archive/intake_wave2/tasks/examples/phase251_readme_installation.json`)
-- `analysis/plan_validator.py` -> DROP-REVIEW (karar bekliyor)
+- `analysis/plan_validator.py` -> ARCHIVE (`docs/ops/archive/intake_wave2/analysis/plan_validator.py`)
