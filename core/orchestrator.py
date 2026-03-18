@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 import re
+import os
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -10,6 +11,25 @@ from core.event_bus import BUS, EventBus
 from core.event_types import EventTypes
 from self_improve.error_analyzer import ErrorAnalyzer
 from workflows.runner import run_workflow, load_workflow
+
+
+ROOT = Path(os.environ.get("GRAYWOLF_ROOT", Path(__file__).resolve().parents[1]))
+TOOLS_DIR = ROOT / "tools"
+SCRIPTS_DIR = ROOT / "scripts"
+WORKFLOWS_DIR = ROOT / "workflows"
+LOGS_DIR = ROOT / "logs"
+
+
+def _tool_path(tool_name: str) -> str:
+    return str(TOOLS_DIR / tool_name)
+
+
+def _script_path(script_name: str) -> str:
+    return str(SCRIPTS_DIR / script_name)
+
+
+def _workflow_path(workflow_name: str) -> str:
+    return str(WORKFLOWS_DIR / workflow_name)
 
 
 @dataclass
@@ -52,8 +72,8 @@ class Orchestrator:
             "En fazla 3 satır üret. Her satır formatı: step_name|shell_command\n"
             "Sadece gerçek shell komutu yaz. Çıplak tool adı YAZMA (ör: analysis_tool YAZMA).\n"
             "GrayWolf tool kullanacaksan python3 ile tam yol ver: "
-            "python3 /home/adem/graywolf/tools/<tool>.py ...\n"
-            "Risk özeti için tercih edilen komut: /home/adem/graywolf/scripts/risk_summary_from_terminal.sh\n"
+            f"python3 {TOOLS_DIR}/<tool>.py ...\\n"
+            f"Risk özeti için tercih edilen komut: {_script_path('risk_summary_from_terminal.sh')}\\n"
             "Dosyaya yazmak için güvenli hedefler: logs/, reports/, tasks/.\n"
             "Örnek: write_report|echo 'metin' > logs/report.md\n"
             "Sadece komut yaz, açıklama yazma.\n"
@@ -97,7 +117,7 @@ class Orchestrator:
             steps.append(
                 OrchestratorStep(
                     name="fallback_status_report",
-                    instruction="python3 /home/adem/graywolf/tools/status_reporter.py --summary --points 8 > logs/autonomy_live_report.md",
+                    instruction=f"python3 {_tool_path('status_reporter.py')} --summary --points 8 > logs/autonomy_live_report.md",
                 )
             )
         return steps[:3]
@@ -115,21 +135,22 @@ class Orchestrator:
         # Prevent bare tool names from being treated as binaries.
         bare_tools = ["analysis_tool", "code_tool", "status_reporter", "report_tool"]
         if cmd in bare_tools:
-            return "python3 /home/adem/graywolf/tools/status_reporter.py --summary --points 8 > logs/autonomy_live_report.md"
+            return f"python3 {_tool_path('status_reporter.py')} --summary --points 8 > logs/autonomy_live_report.md"
 
         return cmd
 
     @staticmethod
     def _normalize_instruction(instruction: str) -> str:
         cmd = instruction or ""
-        m = re.search(r"/home/adem/graywolf/tools/([a-zA-Z0-9_\-]+\.py)", cmd)
+        m = re.search(r"(/[^\s]*/tools/)([a-zA-Z0-9_\-]+\.py)", cmd)
         if not m:
             return cmd
 
-        tool_file = m.group(1)
-        tool_path = Path("/home/adem/graywolf/tools") / tool_file
+        full_prefix = m.group(1)
+        tool_file = m.group(2)
+        tool_path = TOOLS_DIR / tool_file
         if tool_path.exists():
-            return cmd
+            return cmd.replace(f"{full_prefix}{tool_file}", str(tool_path))
 
         alias_map = {
             "graywolf_status_reporter.py": "status_reporter.py",
@@ -138,15 +159,8 @@ class Orchestrator:
             "status_reporter.py": "status_reporter.py",
             "autonomy_summary_tool.py": "autonomy_summary_tool.py",
         }
-        replacement = alias_map.get(tool_file)
-        if replacement:
-            return cmd.replace(f"/home/adem/graywolf/tools/{tool_file}", f"/home/adem/graywolf/tools/{replacement}")
-
-        if tool_file.endswith("_reporter.py"):
-            return cmd.replace(f"/home/adem/graywolf/tools/{tool_file}", "/home/adem/graywolf/tools/status_reporter.py")
-
-        # Generic fallback: unknown tool script -> status_reporter
-        return cmd.replace(f"/home/adem/graywolf/tools/{tool_file}", "/home/adem/graywolf/tools/status_reporter.py")
+        replacement = alias_map.get(tool_file, "status_reporter.py" if tool_file.endswith("_reporter.py") else "status_reporter.py")
+        return cmd.replace(f"{full_prefix}{tool_file}", str(TOOLS_DIR / replacement))
 
     def execute_plan(self, steps: list[OrchestratorStep]) -> dict:
         workflow = {
@@ -259,9 +273,11 @@ class Orchestrator:
             "original_error": first_detail,
         }
 
-    def run_self_improve(self, log_path: str = "/home/adem/graywolf/logs/terminal.log") -> dict:
+    def run_self_improve(self, log_path: str | None = None) -> dict:
+        if log_path is None:
+            log_path = str(LOGS_DIR / "terminal.log")
         # 1. Log analizi workflow'unu çalıştır
-        workflow_path = "/home/adem/graywolf/workflows/self_improve_log_analysis.yaml"
+        workflow_path = _workflow_path("self_improve_log_analysis.yaml")
         workflow_definition = load_workflow(workflow_path) # Workflow tanımını yükle
         workflow_result = run_workflow(workflow_definition) # Yüklenen tanımı run_workflow'a ilet
 

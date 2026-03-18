@@ -3,16 +3,19 @@ import json
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
-sys.path.insert(0, "/home/adem/graywolf")
+ROOT = Path(os.environ.get("GRAYWOLF_ROOT", Path(__file__).resolve().parents[1]))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from core.autonomous_loop import AutonomousLoop
 from core.llm_router import LLMRouter
 
 
 def main() -> int:
-    queue_dir = os.environ.get("GRAYWOLF_QUEUE_DIR", "/home/adem/graywolf/tasks/queue")
-    processed_dir = os.environ.get("GRAYWOLF_PROCESSED_DIR", "/home/adem/graywolf/tasks/processed")
+    queue_dir = os.environ.get("GRAYWOLF_QUEUE_DIR", str(ROOT / "tasks" / "queue"))
+    processed_dir = os.environ.get("GRAYWOLF_PROCESSED_DIR", str(ROOT / "tasks" / "processed"))
 
     try:
         llm = LLMRouter().get()
