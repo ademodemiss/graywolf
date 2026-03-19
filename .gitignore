@@ -20,3 +20,6 @@ tasks/processed_test_auto/
 # rolling local reports
 reports/*_latest.md
 reports/no_break_cleanup_*.md
+
+# local runtime/export artifacts
+data/*.xlsx
