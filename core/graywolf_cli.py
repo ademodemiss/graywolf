@@ -16,9 +16,17 @@ import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 from agent.command_parser import parse_command
-from agent.simple_agent_loop import build_plan, run_agent_loop, wait_for_task_completion
+from agent.simple_agent_loop import (
+    build_plan,
+    find_state_by_request_id,
+    load_agent_state,
+    run_agent_loop,
+    save_agent_state,
+    wait_for_task_completion,
+)
 from core.assistant_explainer import explain_execution, score_ux_output
 
 ROOT = Path('/home/adem/graywolf')
@@ -27,6 +35,7 @@ PENDING_APPROVALS_FILE = ROOT / 'sessions' / 'pending_approvals.json'
 CLI_COMMANDS_FILE = ROOT / 'docs' / 'CLI_COMMANDS.md'
 DAEMON_LOG = ROOT / 'logs' / 'autonomy_daemon.log'
 TERMINAL_LOG = ROOT / 'logs' / 'terminal.log'
+AGENT_RUNS_DIR = ROOT / 'sessions' / 'agent_runs'
 
 HELP_MAP = {
     'status': 'graywolf status [--session-id ID] -> runtime/daemon/queue/approval özeti',
@@ -249,7 +258,7 @@ def cmd_approve(args: argparse.Namespace) -> dict:
 
     status = 'ok' if r['exit_code'] == 0 else 'error'
     exec_status = 'queued' if status == 'ok' else 'error'
-    task_id = ((parsed or {}).get('task') or {}).get('task_id') if isinstance(parsed, dict) else None
+    task_id = (((parsed or {}).get('queued') or {}).get('task') or {}).get('task_id') if isinstance(parsed, dict) else None
     ux = explain_execution({
         'status': exec_status,
         'intent': 'approve',
@@ -257,7 +266,7 @@ def cmd_approve(args: argparse.Namespace) -> dict:
         'errors': (parsed or {}).get('errors') if isinstance(parsed, dict) else None,
     })
 
-    return {
+    out = {
         'status': status,
         'command': 'approve',
         'request_id': args.request_id,
@@ -265,6 +274,71 @@ def cmd_approve(args: argparse.Namespace) -> dict:
         'ux': ux,
         'exec': r,
     }
+
+    if status != 'ok':
+        return out
+
+    state = find_state_by_request_id(str(AGENT_RUNS_DIR), args.request_id)
+    if not state:
+        return out
+
+    pause = (state or {}).get('pause') or {}
+    pause_step = int(pause.get('step_index') or 1)
+
+    tracked = None
+    if task_id:
+        tracked = wait_for_task_completion(task_id, processed_dir=str(ROOT / 'tasks' / 'processed'), timeout_seconds=45)
+
+    trace = list((state or {}).get('trace') or [])
+    plan = list((state or {}).get('plan') or [])
+    if tracked and plan and 1 <= pause_step <= len(plan):
+        trace.append({
+            'index': pause_step,
+            'step': plan[pause_step - 1],
+            'attempts': 1,
+            'result': {'status': tracked.get('status'), 'summary': tracked.get('summary')},
+            'summary': tracked.get('summary', ''),
+            'evaluation': {'accepted': tracked.get('status') == 'completed', 'status': tracked.get('status'), 'reason': 'resume_gate'},
+        })
+
+    if tracked and tracked.get('status') != 'completed':
+        state['status'] = 'error'
+        state['trace'] = trace
+        state['final'] = {
+            'state': 'yarım kaldı',
+            'reason': tracked.get('summary', 'Onay sonrası adım tamamlanamadı.'),
+        }
+        save_agent_state(str(AGENT_RUNS_DIR), state['run_id'], state)
+        out['agent_resume'] = {
+            'status': 'error',
+            'run_id': state.get('run_id'),
+            'final': state['final'],
+        }
+        return out
+
+    state['trace'] = trace
+    state['status'] = 'resuming'
+    state['next_step_index'] = pause_step + 1
+    save_agent_state(str(AGENT_RUNS_DIR), state['run_id'], state)
+
+    resume_cmd = [
+        str(ROOT / 'scripts' / 'graywolf'), 'agent',
+        '--goal', state.get('goal', ''),
+        '--session-id', state.get('session_id', 'graywolf-agent'),
+        '--source', state.get('source', 'graywolf-agent'),
+        '--max-steps', str(state.get('max_steps', 4)),
+        '--resume-run-id', state.get('run_id', ''),
+    ]
+    rr = _run(resume_cmd)
+    resumed = None
+    if rr.get('stdout'):
+        try:
+            resumed = json.loads(rr['stdout'].splitlines()[-1])
+        except Exception:
+            resumed = {'raw': rr['stdout']}
+
+    out['agent_resume'] = resumed or {'status': 'error', 'errors': ['resume_parse_failed']}
+    return out
 
 
 def cmd_deny(args: argparse.Namespace) -> dict:
@@ -493,6 +567,13 @@ def cmd_agent(args: argparse.Namespace) -> dict:
     if not goal:
         return {'status': 'error', 'command': 'agent', 'errors': ['empty_goal']}
 
+    run_id = args.resume_run_id or f"ARUN-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:6]}"
+    resumed_state = None
+    if args.resume_run_id:
+        resumed_state = load_agent_state(str(AGENT_RUNS_DIR), args.resume_run_id)
+        if not resumed_state:
+            return {'status': 'error', 'command': 'agent', 'errors': ['resume_state_not_found'], 'run_id': args.resume_run_id}
+
     def _runner(step: str, idx: int, total: int) -> dict:
         parsed = parse_command(step, source='graywolf-agent')
         payload = {
@@ -522,9 +603,11 @@ def cmd_agent(args: argparse.Namespace) -> dict:
 
         if submit_status == 'confirm_required':
             summary = f"Adım {idx}/{total} onay bekliyor (intent={parsed['intent']})."
+            approval_request_id = (((parsed_out or {}).get('approval_request') or {}).get('request_id') if isinstance(parsed_out, dict) else None)
             return {
                 'status': 'confirm_required',
                 'summary': summary,
+                'approval_request_id': approval_request_id,
                 'intent': parsed['intent'],
                 'parse': parsed,
                 'result': parsed_out,
@@ -556,7 +639,6 @@ def cmd_agent(args: argparse.Namespace) -> dict:
         }
 
     if args.plan_only:
-        from agent.simple_agent_loop import build_plan
         plan = build_plan(goal, max_steps=args.max_steps)
         return {
             'status': 'ok',
@@ -570,9 +652,39 @@ def cmd_agent(args: argparse.Namespace) -> dict:
             },
         }
 
-    out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps, timeout_retries=1)
+    if resumed_state:
+        out = run_agent_loop(
+            goal,
+            step_runner=_runner,
+            max_steps=int(resumed_state.get('max_steps') or args.max_steps),
+            timeout_retries=1,
+            start_index=int(resumed_state.get('next_step_index') or 1),
+            existing_plan=list(resumed_state.get('plan') or []),
+            existing_trace=list(resumed_state.get('trace') or []),
+        )
+    else:
+        out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps, timeout_retries=1)
+
     out['command'] = 'agent'
     out['mode'] = 'run'
+    out['run_id'] = run_id
+
+    state_payload = {
+        'run_id': run_id,
+        'goal': goal,
+        'session_id': args.session_id,
+        'source': args.source,
+        'max_steps': args.max_steps,
+        'status': out.get('status'),
+        'plan': out.get('plan') or [],
+        'trace': out.get('trace') or [],
+        'pause': out.get('pause') or {},
+        'next_step_index': int(((out.get('pause') or {}).get('step_index') or 0)) + 1 if out.get('status') == 'confirm_required' else None,
+        'final': out.get('final') or {},
+    }
+    save_agent_state(str(AGENT_RUNS_DIR), run_id, state_payload)
+    out['state_file'] = str(AGENT_RUNS_DIR / f"{run_id}.json")
+
     return out
 
 
@@ -610,6 +722,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp_agent.add_argument('--source', default='graywolf-agent')
     sp_agent.add_argument('--session-id', default='graywolf-agent')
     sp_agent.add_argument('--plan-only', action='store_true')
+    sp_agent.add_argument('--resume-run-id', default='')
     sp_agent.set_defaults(handler=cmd_agent)
 
     sp_approve = sub.add_parser('approve', help='Approve a pending request id')

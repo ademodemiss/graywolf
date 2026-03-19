@@ -1,6 +1,13 @@
 from pathlib import Path
 
-from agent.simple_agent_loop import build_plan, run_agent_loop, wait_for_task_completion
+from agent.simple_agent_loop import (
+    build_plan,
+    find_state_by_request_id,
+    load_agent_state,
+    run_agent_loop,
+    save_agent_state,
+    wait_for_task_completion,
+)
 
 
 def test_build_plan_returns_3_to_5_steps():
@@ -75,3 +82,52 @@ def test_build_plan_empty_goal_raises():
         assert False, "expected ValueError"
     except ValueError as e:
         assert str(e) == "empty_goal"
+
+
+def test_run_agent_loop_confirm_saves_pause_info():
+    def fake_runner(step: str, idx: int, total: int) -> dict:
+        return {
+            "status": "confirm_required",
+            "summary": "onay gerekiyor",
+            "approval_request_id": "APR-UNIT-1",
+        }
+
+    out = run_agent_loop("deploy yap", step_runner=fake_runner, max_steps=3)
+    assert out["status"] == "confirm_required"
+    assert out["pause"]["approval_request_id"] == "APR-UNIT-1"
+    assert out["pause"]["step_index"] == 1
+
+
+def test_agent_state_save_load_and_find(tmp_path: Path):
+    state_dir = tmp_path / "agent_runs"
+    state = {
+        "run_id": "ARUN-1",
+        "status": "confirm_required",
+        "pause": {"approval_request_id": "APR-UNIT-2", "step_index": 2},
+        "trace": [],
+    }
+    save_agent_state(str(state_dir), "ARUN-1", state)
+    loaded = load_agent_state(str(state_dir), "ARUN-1")
+    found = find_state_by_request_id(str(state_dir), "APR-UNIT-2")
+    assert loaded and loaded["run_id"] == "ARUN-1"
+    assert found and found["run_id"] == "ARUN-1"
+
+
+def test_run_agent_loop_resume_from_next_step():
+    plan = build_plan("bana bir program yap", max_steps=3)
+    existing_trace = [{"index": 1, "step": plan[0], "summary": "step1 done"}]
+
+    def fake_runner(step: str, idx: int, total: int) -> dict:
+        return {"status": "completed", "summary": f"step {idx} tamamlandı"}
+
+    out = run_agent_loop(
+        "bana bir program yap",
+        step_runner=fake_runner,
+        max_steps=3,
+        start_index=2,
+        existing_plan=plan,
+        existing_trace=existing_trace,
+    )
+    assert out["status"] == "ok"
+    assert len(out["trace"]) == 3
+    assert out["trace"][1]["index"] == 2
