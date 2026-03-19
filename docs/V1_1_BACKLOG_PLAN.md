@@ -51,7 +51,15 @@ Prensip: v1.0 çekirdeğini bozmadan assistant UX katmanını güçlendirme.
 3. Wave-3: natural language fallback + confidence
 4. Wave-4: tool remediation hints + kalite metrikleri
 
-## 4) Güvenlik Sınırı
+## 4) İlerleme Durumu (Canlı)
+- [x] Wave-1: response quality foundation (formatter + test)
+- [x] Wave-2: run/approvals UX summary entegrasyonu
+- [x] Wave-3: parser confidence + safe fallback metadata
+- [x] Wave-4 (kısmi): error remediation hints
+- [ ] Wave-4 devamı: approve/deny/status UX tutarlılığı + kalite metrikleri
+- [ ] Dokümana “günlük kullanım cümleleri” bölümü
+
+## 5) Güvenlik Sınırı
 - Runtime core dosyalarında davranış değişikliği yapmadan ilerle
 - Her wave sonunda `scripts/graywolf precheck` zorunlu
 - Küçük commit, geri döndürülebilir değişiklik

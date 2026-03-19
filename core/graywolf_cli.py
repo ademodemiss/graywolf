@@ -248,11 +248,18 @@ def cmd_deny(args: argparse.Namespace) -> dict:
         except Exception:
             parsed = {'raw': r['stdout']}
 
+    status = 'ok' if r['exit_code'] == 0 else 'error'
+    ux = {
+        'summary': 'Onay isteği reddedildi.' if status == 'ok' else 'Onay reddetme sırasında hata oluştu.',
+        'next_step': 'Durumu `graywolf approvals` ile kontrol edebilirsin.' if status == 'ok' else '`graywolf logs --target daemon --lines 50` ile hatayı incele.',
+    }
+
     return {
-        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'status': status,
         'command': 'deny',
         'request_id': args.request_id,
         'result': parsed,
+        'ux': ux,
         'exec': r,
     }
 
