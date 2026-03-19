@@ -54,3 +54,18 @@ def test_queue_has_ux_fields():
 def test_monitor_status_has_ux_fields():
     out = _run_cli("monitor", "status")
     _assert_ux(out)
+
+
+def test_doctor_has_ux_fields():
+    out = _run_cli("doctor")
+    _assert_ux(out)
+
+
+def test_report_has_ux_fields():
+    out = _run_cli("report", "daily")
+    _assert_ux(out)
+
+
+def test_help_has_ux_fields():
+    out = _run_cli("help")
+    _assert_ux(out)

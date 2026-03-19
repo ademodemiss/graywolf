@@ -83,10 +83,15 @@ def cmd_status(args: argparse.Namespace) -> dict:
 
 def cmd_doctor(_args: argparse.Namespace) -> dict:
     r = _run(['bash', str(ROOT / 'scripts' / 'release_precheck.sh')])
+    status = 'ok' if r['exit_code'] == 0 else 'error'
     return {
-        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'status': status,
         'command': 'doctor',
         'report_file': str(ROOT / 'reports' / 'release_precheck_latest.md'),
+        'ux': {
+            'summary': 'Release precheck başarılı.' if status == 'ok' else 'Release precheck hata verdi.',
+            'next_step': 'Raporu `graywolf logs --target precheck --lines 80` ile inceleyebilirsin.' if status == 'ok' else '`graywolf logs --target precheck --lines 120` ile hata detayını incele.',
+        },
         'exec': r,
     }
 
@@ -374,6 +379,10 @@ def cmd_help(args: argparse.Namespace) -> dict:
             'command': 'help',
             'topics': sorted(HELP_MAP.keys()),
             'hint': 'graywolf help <komut> kullan',
+            'ux': {
+                'summary': 'Komut yardımı listelendi.',
+                'next_step': 'Detay görmek için `graywolf help <komut>` çalıştır.',
+            },
         }
 
     text = HELP_MAP.get(topic)
@@ -383,6 +392,10 @@ def cmd_help(args: argparse.Namespace) -> dict:
             'command': 'help',
             'errors': [f'unknown_topic:{topic}'],
             'topics': sorted(HELP_MAP.keys()),
+            'ux': {
+                'summary': f'Bilinmeyen help konusu: {topic}',
+                'next_step': 'Geçerli başlıklar için `graywolf help` çalıştır.',
+            },
         }
 
     return {
@@ -390,6 +403,10 @@ def cmd_help(args: argparse.Namespace) -> dict:
         'command': 'help',
         'topic': topic,
         'usage': text,
+        'ux': {
+            'summary': f'`{topic}` komutu için kullanım gösterildi.',
+            'next_step': f'Komutu çalıştırmak için: {text}',
+        },
     }
 
 
@@ -447,13 +464,18 @@ def cmd_report(args: argparse.Namespace) -> dict:
 
     report_file.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
+    status = 'ok' if status_run['exit_code'] == 0 else 'error'
     return {
-        'status': 'ok' if status_run['exit_code'] == 0 else 'error',
+        'status': status,
         'command': 'report',
         'kind': kind,
         'report_file': str(report_file),
         'runtime_status': status_json,
         'queue_status': queue_json,
+        'ux': {
+            'summary': f'{kind} ops raporu üretildi: {report_file.name}' if status == 'ok' else f'{kind} ops raporu üretimi başarısız.',
+            'next_step': f'Raporu aç: {report_file}' if status == 'ok' else '`graywolf status` ve `graywolf logs --target daemon --lines 50` ile teşhis et.',
+        },
     }
 
 

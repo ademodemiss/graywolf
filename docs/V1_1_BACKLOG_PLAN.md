@@ -56,8 +56,11 @@ Prensip: v1.0 çekirdeğini bozmadan assistant UX katmanını güçlendirme.
 - [x] Wave-2: run/approvals UX summary entegrasyonu
 - [x] Wave-3: parser confidence + safe fallback metadata
 - [x] Wave-4 (kısmi): error remediation hints
-- [ ] Wave-4 devamı: approve/deny/status UX tutarlılığı + kalite metrikleri
-- [ ] Dokümana “günlük kullanım cümleleri” bölümü
+- [x] Wave-4 devamı: approve/deny/status UX tutarlılığı
+- [x] Dokümana “günlük kullanım cümleleri” bölümü
+- [x] UX contract testleri (run/approvals/approve/deny/status/queue/monitor)
+- [x] UX contract genişletmesi (doctor/report/help)
+- [ ] Kalite metrikleri (yanıt netlik/checklist)
 
 ## 5) Günlük Kullanım Cümleleri (Quick Guide)
 - "Sistemin genel durumunu hızlı göster" → `graywolf status`
