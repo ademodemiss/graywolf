@@ -4,6 +4,9 @@ Execution motoruna dokunmadan, üstte planla-yürüt-değerlendir döngüsü sa�
 """
 from __future__ import annotations
 
+import json
+import time
+from pathlib import Path
 from typing import Callable
 
 
@@ -24,14 +27,39 @@ def build_plan(user_goal: str, max_steps: int = 5) -> list[str]:
     return seeds[:step_count]
 
 
+def wait_for_task_completion(task_id: str, processed_dir: str, timeout_seconds: int = 45) -> dict:
+    """Processed task sonucunu bekle (gerçek task dosyası üzerinden)."""
+    path = Path(processed_dir) / f"{task_id}.json"
+    deadline = time.time() + max(1, timeout_seconds)
+
+    while time.time() < deadline:
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except Exception as e:
+                return {"status": "error", "summary": f"Task sonucu okunamadı: {e}"}
+
+            raw = (data or {}).get("status", "unknown")
+            if raw == "completed":
+                return {"status": "completed", "summary": f"Task {task_id} tamamlandı."}
+            if raw in {"failed", "error", "blocked"}:
+                return {"status": "failed", "summary": f"Task {task_id} başarısız: {raw}", "raw_status": raw}
+            return {"status": raw, "summary": f"Task {task_id} işlendi: {raw}"}
+        time.sleep(1.0)
+
+    return {"status": "timeout", "summary": f"Task {task_id} sonucu {timeout_seconds}s içinde tamamlanmadı."}
+
+
 def evaluate_step(step_result: dict) -> dict:
     status = (step_result or {}).get("status", "unknown")
-    accepted = status in {"ok", "queued", "confirm_required"}
-    return {
-        "accepted": accepted,
-        "status": status,
-        "reason": "continue" if accepted else "stop_on_error",
-    }
+
+    if status == "completed":
+        return {"accepted": True, "status": status, "reason": "continue"}
+
+    if status == "confirm_required":
+        return {"accepted": False, "status": status, "reason": "approval_required"}
+
+    return {"accepted": False, "status": status, "reason": "stop_on_error"}
 
 
 def run_agent_loop(
@@ -50,12 +78,14 @@ def run_agent_loop(
                 "index": idx,
                 "step": step,
                 "result": out,
+                "summary": (out or {}).get("summary", ""),
                 "evaluation": ev,
             }
         )
         if not ev["accepted"]:
+            loop_status = "confirm_required" if ev["reason"] == "approval_required" else "error"
             return {
-                "status": "error",
+                "status": loop_status,
                 "goal": user_goal,
                 "plan": plan,
                 "trace": trace,
