@@ -60,7 +60,7 @@ Prensip: v1.0 çekirdeğini bozmadan assistant UX katmanını güçlendirme.
 - [x] Dokümana “günlük kullanım cümleleri” bölümü
 - [x] UX contract testleri (run/approvals/approve/deny/status/queue/monitor)
 - [x] UX contract genişletmesi (doctor/report/help)
-- [ ] Kalite metrikleri (yanıt netlik/checklist)
+- [x] Kalite metrikleri (hafif scorer + ux_quality metadata: run/status/doctor)
 
 ## 5) Günlük Kullanım Cümleleri (Quick Guide)
 - "Sistemin genel durumunu hızlı göster" → `graywolf status`

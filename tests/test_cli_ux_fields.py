@@ -21,9 +21,21 @@ def _assert_ux(payload: dict):
     assert isinstance(ux.get("next_step"), str) and ux.get("next_step"), payload
 
 
+def _assert_ux_quality(payload: dict):
+    q = payload.get("ux_quality")
+    assert isinstance(q, dict), payload
+    assert isinstance(q.get("score"), int), payload
+    assert q.get("level") in {"good", "ok", "weak"}, payload
+    checks = q.get("checks") or {}
+    assert isinstance(checks.get("summary_clear"), bool), payload
+    assert isinstance(checks.get("next_step_actionable"), bool), payload
+    assert isinstance(checks.get("has_filler"), bool), payload
+
+
 def test_run_has_ux_fields():
     out = _run_cli("run", "--intent", "healthcheck", "--goal", "ux-contract-test")
     _assert_ux(out)
+    _assert_ux_quality(out)
 
 
 def test_approvals_has_ux_fields():
@@ -44,6 +56,7 @@ def test_deny_has_ux_fields_even_on_error():
 def test_status_has_ux_fields():
     out = _run_cli("status", "--session-id", "ux-contract-suite")
     _assert_ux(out)
+    _assert_ux_quality(out)
 
 
 def test_queue_has_ux_fields():
@@ -59,6 +72,7 @@ def test_monitor_status_has_ux_fields():
 def test_doctor_has_ux_fields():
     out = _run_cli("doctor")
     _assert_ux(out)
+    _assert_ux_quality(out)
 
 
 def test_report_has_ux_fields():

@@ -1,7 +1,7 @@
 # v1.1 Wave Progress — 2026-03-19
 
 ## Kısa Durum
-- Durum: **IN PROGRESS (mini milestone tamamlandı)**
+- Durum: **FINALIZED (ux_quality stabilizasyonu tamamlandı)**
 - Prensip: v1.0 çekirdeğine no-break yaklaşımı korundu.
 
 ## Tamamlanan Wave'ler
@@ -19,6 +19,10 @@
 ## Kalanlar
 - Kalite metrikleri/checklist (yanıt netliği için küçük ölçüm seti)
 - İsteğe bağlı: UX contract testlerinin CI hızlı-job ayrıştırması
+
+## Not
+- Runtime çekirdeği veya policy davranışı değiştirilmedi; yalnız açıklama/UX katmanı genişletildi.
+�-job ayrıştırması
 
 ## Not
 - Runtime çekirdeği veya policy davranışı değiştirilmedi; yalnız açıklama/UX katmanı genişletildi.

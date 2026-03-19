@@ -17,7 +17,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from core.assistant_explainer import explain_execution
+from core.assistant_explainer import explain_execution, score_ux_output
 
 ROOT = Path('/home/adem/graywolf')
 PY = '/home/adem/.openclaw/workspace/.venv/bin/python'
@@ -69,14 +69,17 @@ def cmd_status(args: argparse.Namespace) -> dict:
     queue = (parsed or {}).get('queue', {}) if isinstance(parsed, dict) else {}
     daemon = (parsed or {}).get('daemon', {}) if isinstance(parsed, dict) else {}
 
+    ux = {
+        'summary': f"Daemon: {daemon.get('status', 'unknown')}, queue_depth: {queue.get('queue_depth', 'n/a')}",
+        'next_step': 'Detay için `graywolf logs --target daemon --lines 30` çalıştırabilirsin.' if status == 'ok' else '`graywolf precheck` ile hızlı teşhis yap.',
+    }
+
     return {
         'status': status,
         'command': 'status',
         'runtime': parsed,
-        'ux': {
-            'summary': f"Daemon: {daemon.get('status', 'unknown')}, queue_depth: {queue.get('queue_depth', 'n/a')}",
-            'next_step': 'Detay için `graywolf logs --target daemon --lines 30` çalıştırabilirsin.' if status == 'ok' else '`graywolf precheck` ile hızlı teşhis yap.',
-        },
+        'ux': ux,
+        'ux_quality': score_ux_output(ux),
         'exec': r,
     }
 
@@ -84,14 +87,16 @@ def cmd_status(args: argparse.Namespace) -> dict:
 def cmd_doctor(_args: argparse.Namespace) -> dict:
     r = _run(['bash', str(ROOT / 'scripts' / 'release_precheck.sh')])
     status = 'ok' if r['exit_code'] == 0 else 'error'
+    ux = {
+        'summary': 'Release precheck başarılı.' if status == 'ok' else 'Release precheck hata verdi.',
+        'next_step': 'Raporu `graywolf logs --target precheck --lines 80` ile inceleyebilirsin.' if status == 'ok' else '`graywolf logs --target precheck --lines 120` ile hata detayını incele.',
+    }
     return {
         'status': status,
         'command': 'doctor',
         'report_file': str(ROOT / 'reports' / 'release_precheck_latest.md'),
-        'ux': {
-            'summary': 'Release precheck başarılı.' if status == 'ok' else 'Release precheck hata verdi.',
-            'next_step': 'Raporu `graywolf logs --target precheck --lines 80` ile inceleyebilirsin.' if status == 'ok' else '`graywolf logs --target precheck --lines 120` ile hata detayını incele.',
-        },
+        'ux': ux,
+        'ux_quality': score_ux_output(ux),
         'exec': r,
     }
 
@@ -220,6 +225,7 @@ def cmd_run(args: argparse.Namespace) -> dict:
         'intent': args.intent,
         'result': parsed,
         'ux': ux,
+        'ux_quality': score_ux_output(ux),
         'exec': r,
     }
 
@@ -555,3 +561,4 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
