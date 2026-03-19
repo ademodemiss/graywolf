@@ -17,6 +17,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+from core.assistant_explainer import explain_execution
+
 ROOT = Path('/home/adem/graywolf')
 PY = '/home/adem/.openclaw/workspace/.venv/bin/python'
 PENDING_APPROVALS_FILE = ROOT / 'sessions' / 'pending_approvals.json'
@@ -100,11 +102,16 @@ def cmd_onboard(_args: argparse.Namespace) -> dict:
 
 def cmd_approvals(_args: argparse.Namespace) -> dict:
     if not PENDING_APPROVALS_FILE.exists():
+        summary = {'pending': 0, 'granted': 0, 'denied': 0, 'skipped': 0, 'total': 0}
         return {
             'status': 'ok',
             'command': 'approvals',
-            'summary': {'pending': 0, 'granted': 0, 'denied': 0, 'skipped': 0, 'total': 0},
+            'summary': summary,
             'latest': [],
+            'ux': {
+                'summary': 'Bekleyen onay yok.',
+                'next_step': 'Yeni onay çıktığında `graywolf approvals` ile kontrol edebilirsin.',
+            },
         }
 
     try:
@@ -125,18 +132,24 @@ def cmd_approvals(_args: argparse.Namespace) -> dict:
             'resolved_at': (item or {}).get('resolved_at'),
         })
 
+    summary = {
+        'pending': counts.get('pending', 0),
+        'granted': counts.get('granted', 0),
+        'denied': counts.get('denied', 0),
+        'skipped': counts.get('skipped', 0),
+        'total': len(items),
+    }
+
     return {
         'status': 'ok',
         'command': 'approvals',
-        'summary': {
-            'pending': counts.get('pending', 0),
-            'granted': counts.get('granted', 0),
-            'denied': counts.get('denied', 0),
-            'skipped': counts.get('skipped', 0),
-            'total': len(items),
-        },
+        'summary': summary,
         'latest': latest,
         'file': str(PENDING_APPROVALS_FILE),
+        'ux': {
+            'summary': f"Bekleyen onay: {summary['pending']}, grant: {summary['granted']}, deny: {summary['denied']}",
+            'next_step': 'Bekleyen varsa `graywolf approve <request_id>` veya `graywolf deny <request_id>` kullan.',
+        },
     }
 
 
@@ -179,11 +192,21 @@ def cmd_run(args: argparse.Namespace) -> dict:
             parsed = {'raw': r['stdout']}
 
     status = 'ok' if r['exit_code'] == 0 else 'error'
+
+    execution_status = ((parsed or {}).get('status') if isinstance(parsed, dict) else None) or ('error' if status == 'error' else 'queued')
+    task_id = ((parsed or {}).get('task') or {}).get('task_id') if isinstance(parsed, dict) else None
+    ux = explain_execution({
+        'status': execution_status,
+        'intent': args.intent,
+        'task_id': task_id,
+    })
+
     return {
         'status': status,
         'command': 'run',
         'intent': args.intent,
         'result': parsed,
+        'ux': ux,
         'exec': r,
     }
 
