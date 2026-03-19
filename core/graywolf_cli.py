@@ -17,6 +17,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+from agent.command_parser import parse_command
+from agent.simple_agent_loop import build_plan, run_agent_loop
 from core.assistant_explainer import explain_execution, score_ux_output
 
 ROOT = Path('/home/adem/graywolf')
@@ -40,6 +42,7 @@ HELP_MAP = {
     'precheck': 'graywolf precheck -> release precheck gate',
     'monitor': 'graywolf monitor start|stop|status -> daemon kontrol',
     'report': 'graywolf report daily|weekly -> ops summary raporu üretir',
+    'agent': 'graywolf agent --goal "..." [--max-steps 5] [--plan-only] -> tek ajan planla/yürüt',
 }
 
 
@@ -485,6 +488,67 @@ def cmd_report(args: argparse.Namespace) -> dict:
     }
 
 
+def cmd_agent(args: argparse.Namespace) -> dict:
+    goal = (args.goal or '').strip()
+    if not goal:
+        return {'status': 'error', 'command': 'agent', 'errors': ['empty_goal']}
+
+    def _runner(step: str, idx: int, total: int) -> dict:
+        parsed = parse_command(step, source='graywolf-agent')
+        payload = {
+            'goal': f"{goal} | step {idx}/{total}: {step}",
+            'agent_goal': goal,
+            'agent_step': step,
+            'agent_step_index': idx,
+            'agent_total_steps': total,
+        }
+        r = _run([
+            PY, '-m', 'core.runtime', 'submit-command',
+            '--session-id', args.session_id,
+            '--intent', parsed['intent'],
+            '--payload', json.dumps(payload, ensure_ascii=False),
+            '--source', args.source,
+        ])
+
+        parsed_out = None
+        if r['stdout']:
+            try:
+                parsed_out = json.loads(r['stdout'].splitlines()[-1])
+            except Exception:
+                parsed_out = {'raw': r['stdout']}
+
+        status = 'ok' if r['exit_code'] == 0 else 'error'
+        execution_status = ((parsed_out or {}).get('status') if isinstance(parsed_out, dict) else None) or ('error' if status == 'error' else 'queued')
+
+        return {
+            'status': execution_status,
+            'intent': parsed['intent'],
+            'parse': parsed,
+            'result': parsed_out,
+            'exec': r,
+        }
+
+    if args.plan_only:
+        from agent.simple_agent_loop import build_plan
+        plan = build_plan(goal, max_steps=args.max_steps)
+        return {
+            'status': 'ok',
+            'command': 'agent',
+            'goal': goal,
+            'mode': 'plan_only',
+            'plan': plan,
+            'ux': {
+                'summary': f'Plan üretildi ({len(plan)} adım).',
+                'next_step': 'Yürütmek için `graywolf agent --goal "..."` çalıştır.',
+            },
+        }
+
+    out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps)
+    out['command'] = 'agent'
+    out['mode'] = 'run'
+    return out
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog='graywolf', description='Graywolf CLI')
     sub = p.add_subparsers(dest='subcommand', required=True)
@@ -512,6 +576,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp_run.add_argument('--source', default='graywolf-cli')
     sp_run.add_argument('--session-id', default='graywolf-cli')
     sp_run.set_defaults(handler=cmd_run)
+
+    sp_agent = sub.add_parser('agent', help='Single-agent plan and execute loop')
+    sp_agent.add_argument('--goal', required=True)
+    sp_agent.add_argument('--max-steps', type=int, default=4)
+    sp_agent.add_argument('--source', default='graywolf-agent')
+    sp_agent.add_argument('--session-id', default='graywolf-agent')
+    sp_agent.add_argument('--plan-only', action='store_true')
+    sp_agent.set_defaults(handler=cmd_agent)
 
     sp_approve = sub.add_parser('approve', help='Approve a pending request id')
     sp_approve.add_argument('request_id')
