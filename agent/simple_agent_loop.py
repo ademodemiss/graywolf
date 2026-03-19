@@ -50,6 +50,19 @@ def wait_for_task_completion(task_id: str, processed_dir: str, timeout_seconds: 
     return {"status": "timeout", "summary": f"Task {task_id} sonucu {timeout_seconds}s içinde tamamlanmadı."}
 
 
+def classify_failure(step_result: dict) -> str:
+    status = str((step_result or {}).get("status", "unknown")).lower()
+    if status == "timeout":
+        return "timeout"
+    if status == "failed":
+        return "failed"
+    if status == "blocked":
+        return "blocked"
+    if status == "error":
+        return "failed"
+    return "unknown"
+
+
 def evaluate_step(step_result: dict) -> dict:
     status = (step_result or {}).get("status", "unknown")
 
@@ -60,6 +73,16 @@ def evaluate_step(step_result: dict) -> dict:
     if status == "timeout":
         return {"accepted": False, "status": status, "reason": "timeout"}
     return {"accepted": False, "status": status, "reason": "stop_on_error"}
+
+
+def _is_step_safe_to_skip(step: str) -> bool:
+    lowered = (step or "").lower()
+    risky = ("deploy", "production", "release", "delete", "drop", "migrate")
+    return not any(k in lowered for k in risky)
+
+
+def _fallback_step(failed_step: str) -> str:
+    return f"Güvenli fallback: önce durum/log kontrolü yap ve ardından devam et ({failed_step})"
 
 
 def save_agent_state(state_dir: str, run_id: str, state: dict) -> str:
@@ -105,10 +128,12 @@ def run_agent_loop(
     existing_plan: list[str] | None = None,
     existing_trace: list[dict] | None = None,
 ) -> dict:
-    plan = existing_plan or build_plan(user_goal, max_steps=max_steps)
+    plan = list(existing_plan or build_plan(user_goal, max_steps=max_steps))
     trace: list[dict] = list(existing_trace or [])
+    replans_used = 0
+    idx = start_index
 
-    for idx in range(start_index, len(plan) + 1):
+    while idx <= len(plan):
         step = plan[idx - 1]
         attempts = 0
         out: dict = {}
@@ -125,9 +150,28 @@ def run_agent_loop(
                 continue
             break
 
+        classification = classify_failure(out)
         step_summary = (out or {}).get("summary", "")
         if ev.get("reason") == "timeout" and attempts > max(0, timeout_retries):
             step_summary = f"{step_summary} Retry limiti aşıldı ({timeout_retries}).".strip()
+
+        recovery_attempt = None
+        fallback_used = False
+        replanned = False
+
+        if not ev["accepted"] and ev["reason"] not in {"approval_required"}:
+            safe_to_skip = _is_step_safe_to_skip(step)
+            if safe_to_skip:
+                recovery_attempt = "skip_step"
+            elif replans_used < 1:
+                fallback = _fallback_step(step)
+                plan.insert(idx, fallback)
+                replans_used += 1
+                recovery_attempt = "insert_fallback"
+                fallback_used = True
+                replanned = True
+            else:
+                recovery_attempt = "stop"
 
         trace.append(
             {
@@ -137,6 +181,10 @@ def run_agent_loop(
                 "result": out,
                 "summary": step_summary,
                 "evaluation": ev,
+                "recovery_attempt": recovery_attempt,
+                "fallback_used": fallback_used,
+                "replanned": replanned,
+                "failure_classification": classification,
             }
         )
 
@@ -158,6 +206,14 @@ def run_agent_loop(
                     },
                 }
 
+            if recovery_attempt == "skip_step":
+                idx += 1
+                continue
+
+            if recovery_attempt == "insert_fallback":
+                idx += 1
+                continue
+
             if ev["reason"] == "timeout":
                 return {
                     "status": "error",
@@ -167,7 +223,7 @@ def run_agent_loop(
                     "completed_steps": idx - 1,
                     "final": {
                         "state": "yarım kaldı",
-                        "reason": f"Adım {idx} timeout oldu, retry sonrası da tamamlanamadı.",
+                        "reason": f"Adım {idx} timeout oldu, recovery sonrası da tamamlanamadı.",
                     },
                 }
 
@@ -183,14 +239,16 @@ def run_agent_loop(
                 },
             }
 
+        idx += 1
+
     return {
         "status": "ok",
         "goal": user_goal,
         "plan": plan,
         "trace": trace,
-        "completed_steps": len(plan),
+        "completed_steps": len([t for t in trace if (t.get('evaluation') or {}).get('accepted')]),
         "final": {
             "state": "tamamlandı",
-            "reason": f"{len(plan)} adım başarıyla tamamlandı.",
+            "reason": f"{len(trace)} adım işlendi; recovery/replan varsa trace üzerinde işlendi.",
         },
     }

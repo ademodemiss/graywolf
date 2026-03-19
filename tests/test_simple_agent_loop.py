@@ -39,17 +39,16 @@ def test_run_agent_loop_confirm_required_stops():
     assert out["final"]["state"] == "yarım kaldı"
 
 
-def test_run_agent_loop_failed_stops():
+def test_run_agent_loop_failed_can_skip_and_continue():
     def fake_runner(step: str, idx: int, total: int) -> dict:
         if idx == 2:
             return {"status": "failed", "summary": "adım başarısız"}
         return {"status": "completed", "summary": "ok"}
 
     out = run_agent_loop("bana bir program yap", step_runner=fake_runner, max_steps=4)
-    assert out["status"] == "error"
-    assert out["completed_steps"] == 1
-    assert len(out["trace"]) == 2
-    assert out["final"]["state"] == "yarım kaldı"
+    assert out["status"] == "ok"
+    assert len(out["trace"]) >= 3
+    assert out["trace"][1]["recovery_attempt"] in {"skip_step", "insert_fallback"}
 
 
 def test_wait_for_task_completion_reads_processed_result(tmp_path: Path):
@@ -62,18 +61,19 @@ def test_wait_for_task_completion_reads_processed_result(tmp_path: Path):
     assert out["status"] == "completed"
 
 
-def test_run_agent_loop_timeout_retries_then_stops():
+def test_run_agent_loop_timeout_retries_then_recovers_with_skip():
     calls = {"n": 0}
 
     def fake_runner(step: str, idx: int, total: int) -> dict:
         calls["n"] += 1
-        return {"status": "timeout", "summary": "iş sonucu bekleniyor"}
+        if idx == 1:
+            return {"status": "timeout", "summary": "iş sonucu bekleniyor"}
+        return {"status": "completed", "summary": "ok"}
 
     out = run_agent_loop("bana bir program yap", step_runner=fake_runner, max_steps=3, timeout_retries=1)
-    assert out["status"] == "error"
-    assert out["completed_steps"] == 0
+    assert out["status"] == "ok"
     assert out["trace"][0]["attempts"] == 2
-    assert "Retry limiti" in out["trace"][0]["summary"]
+    assert out["trace"][0]["recovery_attempt"] in {"skip_step", "insert_fallback"}
 
 
 def test_build_plan_empty_goal_raises():
@@ -131,3 +131,17 @@ def test_run_agent_loop_resume_from_next_step():
     assert out["status"] == "ok"
     assert len(out["trace"]) == 3
     assert out["trace"][1]["index"] == 2
+
+
+def test_run_agent_loop_blocked_uses_single_replan_then_stops():
+    def fake_runner(step: str, idx: int, total: int) -> dict:
+        if "fallback" in step.lower():
+            return {"status": "blocked", "summary": "fallback da bloklandı"}
+        if "deploy" in step.lower():
+            return {"status": "blocked", "summary": "deploy bloklandı"}
+        return {"status": "completed", "summary": "ok"}
+
+    out = run_agent_loop("production deploy yap", step_runner=fake_runner, max_steps=3)
+    assert out["status"] == "error"
+    assert any(t.get("replanned") for t in out["trace"])
+    assert any(t.get("fallback_used") for t in out["trace"])
