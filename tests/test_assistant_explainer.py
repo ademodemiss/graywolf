@@ -1,4 +1,4 @@
-from core.assistant_explainer import explain_execution
+from core.assistant_explainer import explain_execution, score_ux_output
 
 
 def test_explain_queued():
@@ -34,3 +34,25 @@ def test_explain_error_with_permission_hint():
     out = explain_execution({"status": "error", "errors": ["Permission denied while opening file"]})
     assert "Permission denied" in out["summary"]
     assert "izin" in out["next_step"].lower()
+
+
+def test_score_ux_output_good():
+    ux = {
+        "summary": "İş kuyruğa alındı. Intent: healthcheck.",
+        "next_step": "`graywolf queue --limit 5` ile takip edebilirsin.",
+    }
+    q = score_ux_output(ux)
+    assert q["score"] == 3
+    assert q["level"] == "good"
+    assert q["checks"]["summary_clear"] is True
+    assert q["checks"]["next_step_actionable"] is True
+
+
+def test_score_ux_output_detects_filler():
+    ux = {
+        "summary": "Harika soru, yardımcı olmaktan mutluluk duyarım.",
+        "next_step": "Bakabiliriz.",
+    }
+    q = score_ux_output(ux)
+    assert q["checks"]["has_filler"] is True
+    assert q["score"] <= 2

@@ -7,6 +7,23 @@ from __future__ import annotations
 from typing import Any
 
 
+FILLER_PHRASES = (
+    "harika soru",
+    "memnuniyetle",
+    "yardımcı olmaktan mutluluk",
+    "isterseniz size",
+)
+
+ACTION_HINT_WORDS = (
+    "çalıştır",
+    "kontrol et",
+    "incele",
+    "deneyebilirsin",
+    "kullan",
+    "aç",
+)
+
+
 ERROR_REMEDIATION_HINTS: list[tuple[str, str]] = [
     ("invalid_payload_json", "Payload JSON formatını düzeltip komutu tekrar çalıştır."),
     ("confirm_required", "Onay bekleyen isteği `graywolf approvals` ile görüp approve/deny ver."),
@@ -22,6 +39,35 @@ def _remediation_hint(error_text: str) -> str:
         if needle in lowered:
             return hint
     return "`graywolf logs --target daemon --lines 50` ve `graywolf precheck` ile hızlı teşhis yap."
+
+
+def score_ux_output(ux: dict[str, str]) -> dict[str, Any]:
+    """Hafif UX kalite kontrolü (v1.1).
+
+    Kriterler:
+    - summary açık mı?
+    - next_step aksiyon içeriyor mu?
+    - gereksiz laf var mı?
+    """
+    summary = (ux or {}).get("summary", "") or ""
+    next_step = (ux or {}).get("next_step", "") or ""
+
+    summary_clear = len(summary.strip()) >= 12
+    has_action = any(w in next_step.lower() for w in ACTION_HINT_WORDS) or "`" in next_step
+    has_filler = any(p in (summary + " " + next_step).lower() for p in FILLER_PHRASES)
+
+    score = int(summary_clear) + int(has_action) + int(not has_filler)
+    level = "good" if score == 3 else ("ok" if score == 2 else "weak")
+
+    return {
+        "score": score,
+        "level": level,
+        "checks": {
+            "summary_clear": summary_clear,
+            "next_step_actionable": has_action,
+            "has_filler": has_filler,
+        },
+    }
 
 
 def explain_execution(result: dict[str, Any]) -> dict[str, str]:
