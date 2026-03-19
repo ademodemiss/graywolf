@@ -16,6 +16,7 @@ def test_run_agent_loop_low_risk_success():
     assert out["status"] == "ok"
     assert out["completed_steps"] == 3
     assert len(out["trace"]) == 3
+    assert out["final"]["state"] == "tamamlandı"
 
 
 def test_run_agent_loop_confirm_required_stops():
@@ -28,6 +29,7 @@ def test_run_agent_loop_confirm_required_stops():
     assert out["status"] == "confirm_required"
     assert out["completed_steps"] == 0
     assert len(out["trace"]) == 1
+    assert out["final"]["state"] == "yarım kaldı"
 
 
 def test_run_agent_loop_failed_stops():
@@ -40,6 +42,7 @@ def test_run_agent_loop_failed_stops():
     assert out["status"] == "error"
     assert out["completed_steps"] == 1
     assert len(out["trace"]) == 2
+    assert out["final"]["state"] == "yarım kaldı"
 
 
 def test_wait_for_task_completion_reads_processed_result(tmp_path: Path):
@@ -50,6 +53,20 @@ def test_wait_for_task_completion_reads_processed_result(tmp_path: Path):
 
     out = wait_for_task_completion(task_id, processed_dir=str(processed), timeout_seconds=1)
     assert out["status"] == "completed"
+
+
+def test_run_agent_loop_timeout_retries_then_stops():
+    calls = {"n": 0}
+
+    def fake_runner(step: str, idx: int, total: int) -> dict:
+        calls["n"] += 1
+        return {"status": "timeout", "summary": "iş sonucu bekleniyor"}
+
+    out = run_agent_loop("bana bir program yap", step_runner=fake_runner, max_steps=3, timeout_retries=1)
+    assert out["status"] == "error"
+    assert out["completed_steps"] == 0
+    assert out["trace"][0]["attempts"] == 2
+    assert "Retry limiti" in out["trace"][0]["summary"]
 
 
 def test_build_plan_empty_goal_raises():

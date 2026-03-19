@@ -570,7 +570,7 @@ def cmd_agent(args: argparse.Namespace) -> dict:
             },
         }
 
-    out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps)
+    out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps, timeout_retries=1)
     out['command'] = 'agent'
     out['mode'] = 'run'
     return out

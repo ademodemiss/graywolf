@@ -59,6 +59,9 @@ def evaluate_step(step_result: dict) -> dict:
     if status == "confirm_required":
         return {"accepted": False, "status": status, "reason": "approval_required"}
 
+    if status == "timeout":
+        return {"accepted": False, "status": status, "reason": "timeout"}
+
     return {"accepted": False, "status": status, "reason": "stop_on_error"}
 
 
@@ -66,30 +69,81 @@ def run_agent_loop(
     user_goal: str,
     step_runner: Callable[[str, int, int], dict],
     max_steps: int = 5,
+    timeout_retries: int = 1,
 ) -> dict:
     plan = build_plan(user_goal, max_steps=max_steps)
     trace: list[dict] = []
 
     for idx, step in enumerate(plan, start=1):
-        out = step_runner(step, idx, len(plan))
-        ev = evaluate_step(out)
+        attempts = 0
+        out: dict = {}
+        ev: dict = {"accepted": False, "status": "unknown", "reason": "not_started"}
+
+        while attempts <= max(0, timeout_retries):
+            attempts += 1
+            out = step_runner(step, idx, len(plan))
+            ev = evaluate_step(out)
+
+            if ev["accepted"]:
+                break
+
+            if ev["reason"] == "timeout" and attempts <= max(0, timeout_retries):
+                continue
+
+            break
+
+        step_summary = (out or {}).get("summary", "")
+        if ev.get("reason") == "timeout" and attempts > max(0, timeout_retries):
+            step_summary = f"{step_summary} Retry limiti aşıldı ({timeout_retries}).".strip()
+
         trace.append(
             {
                 "index": idx,
                 "step": step,
+                "attempts": attempts,
                 "result": out,
-                "summary": (out or {}).get("summary", ""),
+                "summary": step_summary,
                 "evaluation": ev,
             }
         )
+
         if not ev["accepted"]:
-            loop_status = "confirm_required" if ev["reason"] == "approval_required" else "error"
+            if ev["reason"] == "approval_required":
+                return {
+                    "status": "confirm_required",
+                    "goal": user_goal,
+                    "plan": plan,
+                    "trace": trace,
+                    "completed_steps": idx - 1,
+                    "final": {
+                        "state": "yarım kaldı",
+                        "reason": f"Adım {idx} onay bekliyor.",
+                    },
+                }
+
+            if ev["reason"] == "timeout":
+                return {
+                    "status": "error",
+                    "goal": user_goal,
+                    "plan": plan,
+                    "trace": trace,
+                    "completed_steps": idx - 1,
+                    "final": {
+                        "state": "yarım kaldı",
+                        "reason": f"Adım {idx} timeout oldu, retry sonrası da tamamlanamadı.",
+                    },
+                }
+
             return {
-                "status": loop_status,
+                "status": "error",
                 "goal": user_goal,
                 "plan": plan,
                 "trace": trace,
                 "completed_steps": idx - 1,
+                "final": {
+                    "state": "yarım kaldı",
+                    "reason": f"Adım {idx} başarısız oldu: {(out or {}).get('status', 'unknown')}",
+                },
             }
 
     return {
@@ -98,4 +152,8 @@ def run_agent_loop(
         "plan": plan,
         "trace": trace,
         "completed_steps": len(plan),
+        "final": {
+            "state": "tamamlandı",
+            "reason": f"{len(plan)} adım başarıyla tamamlandı.",
+        },
     }
