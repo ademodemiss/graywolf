@@ -65,10 +65,18 @@ def cmd_status(args: argparse.Namespace) -> dict:
         except Exception:
             parsed = {'raw': r['stdout']}
 
+    status = 'ok' if r['exit_code'] == 0 else 'error'
+    queue = (parsed or {}).get('queue', {}) if isinstance(parsed, dict) else {}
+    daemon = (parsed or {}).get('daemon', {}) if isinstance(parsed, dict) else {}
+
     return {
-        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'status': status,
         'command': 'status',
         'runtime': parsed,
+        'ux': {
+            'summary': f"Daemon: {daemon.get('status', 'unknown')}, queue_depth: {queue.get('queue_depth', 'n/a')}",
+            'next_step': 'Detay için `graywolf logs --target daemon --lines 30` çalıştırabilirsin.' if status == 'ok' else '`graywolf precheck` ile hızlı teşhis yap.',
+        },
         'exec': r,
     }
 
@@ -225,11 +233,22 @@ def cmd_approve(args: argparse.Namespace) -> dict:
         except Exception:
             parsed = {'raw': r['stdout']}
 
+    status = 'ok' if r['exit_code'] == 0 else 'error'
+    exec_status = 'queued' if status == 'ok' else 'error'
+    task_id = ((parsed or {}).get('task') or {}).get('task_id') if isinstance(parsed, dict) else None
+    ux = explain_execution({
+        'status': exec_status,
+        'intent': 'approve',
+        'task_id': task_id,
+        'errors': (parsed or {}).get('errors') if isinstance(parsed, dict) else None,
+    })
+
     return {
-        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'status': status,
         'command': 'approve',
         'request_id': args.request_id,
         'result': parsed,
+        'ux': ux,
         'exec': r,
     }
 
@@ -290,19 +309,24 @@ def cmd_queue(args: argparse.Namespace) -> dict:
 
     q_files = sorted([p.name for p in queue_dir.glob('*.json')]) if queue_dir.exists() else []
     p_files = sorted([p.name for p in processed_dir.glob('*.json')]) if processed_dir.exists() else []
+    summary = {
+        'queue_depth': len(q_files),
+        'processed_count': len(p_files),
+    }
 
     return {
         'status': 'ok',
         'command': 'queue',
-        'summary': {
-            'queue_depth': len(q_files),
-            'processed_count': len(p_files),
-        },
+        'summary': summary,
         'last_queued_files': q_files[-args.limit:],
         'last_processed_files': p_files[-args.limit:],
         'dirs': {
             'queue': str(queue_dir),
             'processed': str(processed_dir),
+        },
+        'ux': {
+            'summary': f"Kuyrukta {summary['queue_depth']} iş var, toplam işlenen {summary['processed_count']}.",
+            'next_step': 'Bekleme artarsa `graywolf monitor status` ve `graywolf logs --target daemon --lines 50` ile kontrol et.',
         },
     }
 
@@ -326,10 +350,18 @@ def cmd_monitor(args: argparse.Namespace) -> dict:
     else:
         r = _run(['bash', str(ROOT / 'scripts' / 'autonomy_daemon.sh'), 'status'])
 
+    status = 'ok' if r['exit_code'] == 0 else 'error'
+    summary = f"Monitor action `{action}` {'başarılı' if status == 'ok' else 'hatalı'} tamamlandı."
+    next_step = 'Servis durumunu doğrulamak için `graywolf monitor status` çalıştır.' if status == 'ok' else '`graywolf logs --target daemon --lines 50` ile hatayı incele.'
+
     return {
-        'status': 'ok' if r['exit_code'] == 0 else 'error',
+        'status': status,
         'command': 'monitor',
         'action': action,
+        'ux': {
+            'summary': summary,
+            'next_step': next_step,
+        },
         'exec': r,
     }
 

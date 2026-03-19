@@ -59,7 +59,15 @@ Prensip: v1.0 çekirdeğini bozmadan assistant UX katmanını güçlendirme.
 - [ ] Wave-4 devamı: approve/deny/status UX tutarlılığı + kalite metrikleri
 - [ ] Dokümana “günlük kullanım cümleleri” bölümü
 
-## 5) Güvenlik Sınırı
+## 5) Günlük Kullanım Cümleleri (Quick Guide)
+- "Sistemin genel durumunu hızlı göster" → `graywolf status`
+- "Bekleyen işleri/kuyruğu özetle" → `graywolf queue --limit 10`
+- "Onay bekleyen kritik işleri göster" → `graywolf approvals`
+- "Bu isteği çalıştır" → `graywolf run --intent <intent> --goal "..."`
+- "Daemon ayakta mı?" → `graywolf monitor status`
+- "Hızlı sağlık kontrolü yap" → `graywolf precheck`
+
+## 6) Güvenlik Sınırı
 - Runtime core dosyalarında davranış değişikliği yapmadan ilerle
 - Her wave sonunda `scripts/graywolf precheck` zorunlu
 - Küçük commit, geri döndürülebilir değişiklik
