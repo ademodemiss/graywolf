@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 from agent.command_parser import parse_command
-from agent.simple_agent_loop import build_plan, run_agent_loop
+from agent.simple_agent_loop import build_plan, run_agent_loop, wait_for_task_completion
 from core.assistant_explainer import explain_execution, score_ux_output
 
 ROOT = Path('/home/adem/graywolf')
@@ -517,11 +517,38 @@ def cmd_agent(args: argparse.Namespace) -> dict:
             except Exception:
                 parsed_out = {'raw': r['stdout']}
 
-        status = 'ok' if r['exit_code'] == 0 else 'error'
-        execution_status = ((parsed_out or {}).get('status') if isinstance(parsed_out, dict) else None) or ('error' if status == 'error' else 'queued')
+        call_status = 'ok' if r['exit_code'] == 0 else 'error'
+        submit_status = ((parsed_out or {}).get('status') if isinstance(parsed_out, dict) else None) or ('error' if call_status == 'error' else 'queued')
 
+        if submit_status == 'confirm_required':
+            summary = f"Adım {idx}/{total} onay bekliyor (intent={parsed['intent']})."
+            return {
+                'status': 'confirm_required',
+                'summary': summary,
+                'intent': parsed['intent'],
+                'parse': parsed,
+                'result': parsed_out,
+                'exec': r,
+            }
+
+        task_id = ((parsed_out or {}).get('task') or {}).get('task_id') if isinstance(parsed_out, dict) else None
+        if submit_status == 'queued' and task_id:
+            tracked = wait_for_task_completion(task_id, processed_dir=str(ROOT / 'tasks' / 'processed'), timeout_seconds=45)
+            return {
+                'status': tracked.get('status', 'error'),
+                'summary': tracked.get('summary', f'Adım {idx}/{total} sonucu belirsiz.'),
+                'task_id': task_id,
+                'intent': parsed['intent'],
+                'parse': parsed,
+                'result': parsed_out,
+                'tracked': tracked,
+                'exec': r,
+            }
+
+        summary = f"Adım {idx}/{total} submit sonucu: {submit_status}."
         return {
-            'status': execution_status,
+            'status': 'error' if submit_status in {'error', 'failed', 'blocked', 'timeout'} else submit_status,
+            'summary': summary,
             'intent': parsed['intent'],
             'parse': parsed,
             'result': parsed_out,
@@ -543,7 +570,7 @@ def cmd_agent(args: argparse.Namespace) -> dict:
             },
         }
 
-    out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps)
+    out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps, timeout_retries=1)
     out['command'] = 'agent'
     out['mode'] = 'run'
     return out

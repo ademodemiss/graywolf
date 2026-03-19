@@ -21,3 +21,16 @@ def test_agent_plan_only_outputs_plan():
     assert payload['mode'] == 'plan_only'
     assert isinstance(payload.get('plan'), list)
     assert len(payload['plan']) == 4
+
+
+def test_agent_empty_goal_errors():
+    p = subprocess.run(
+        [str(CLI), 'agent', '--goal', ''],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode != 0
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'error'
+    assert 'empty_goal' in payload.get('errors', [])
