@@ -12,6 +12,9 @@ class ParsedCommand:
     objective: str
     intent: str
     source: str = "agent-parser"
+    confidence: float = 0.0
+    fallback: bool = False
+    hint: str = ""
 
 
 INTENT_KEYWORDS = {
@@ -21,12 +24,19 @@ INTENT_KEYWORDS = {
 }
 
 
-def infer_intent(command: str) -> str:
+def infer_intent_with_confidence(command: str) -> tuple[str, float]:
     lowered = (command or "").lower()
+    scores: dict[str, float] = {}
     for intent, keywords in INTENT_KEYWORDS.items():
-        if any(k in lowered for k in keywords):
-            return intent
-    return "execute"
+        matches = sum(1 for k in keywords if k in lowered)
+        if matches:
+            scores[intent] = matches / max(len(keywords), 1)
+
+    if not scores:
+        return "execute", 0.20
+
+    best_intent, best_score = max(scores.items(), key=lambda kv: kv[1])
+    return best_intent, float(best_score)
 
 
 def parse_command(command: str, source: str = "agent-parser") -> dict:
@@ -34,9 +44,25 @@ def parse_command(command: str, source: str = "agent-parser") -> dict:
     if not objective:
         raise ValueError("empty_command")
 
-    parsed = ParsedCommand(objective=objective, intent=infer_intent(objective), source=source)
+    intent, confidence = infer_intent_with_confidence(objective)
+    fallback = intent == "execute" and confidence <= 0.25
+    hint = ""
+    if fallback:
+        hint = "Niyet net değil; güvenli fallback intent=execute seçildi."
+
+    parsed = ParsedCommand(
+        objective=objective,
+        intent=intent,
+        source=source,
+        confidence=confidence,
+        fallback=fallback,
+        hint=hint,
+    )
     return {
         "objective": parsed.objective,
         "intent": parsed.intent,
         "source": parsed.source,
+        "confidence": round(parsed.confidence, 2),
+        "fallback": parsed.fallback,
+        "hint": parsed.hint,
     }

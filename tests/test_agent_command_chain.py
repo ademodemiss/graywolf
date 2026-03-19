@@ -9,6 +9,15 @@ def test_parse_command_basic():
     out = parse_command("Sistemde sağlık kontrolü yap")
     assert out["objective"]
     assert out["intent"] in {"healthcheck", "execute", "analyze", "deploy"}
+    assert 0.0 <= out["confidence"] <= 1.0
+    assert "fallback" in out
+
+
+def test_parse_command_fallback_for_ambiguous_input():
+    out = parse_command("şuna bir bakar mısın")
+    assert out["intent"] == "execute"
+    assert out["fallback"] is True
+    assert "fallback" in out["hint"].lower()
 
 
 def test_decompose_plan_single_step():
