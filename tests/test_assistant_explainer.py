@@ -22,3 +22,15 @@ def test_explain_error():
     out = explain_execution({"status": "error"})
     assert "hata" in out["summary"]
     assert "precheck" in out["next_step"]
+
+
+def test_explain_error_with_payload_json_hint():
+    out = explain_execution({"status": "error", "error": "invalid_payload_json: Expecting value"})
+    assert "invalid_payload_json" in out["summary"]
+    assert "Payload JSON" in out["next_step"]
+
+
+def test_explain_error_with_permission_hint():
+    out = explain_execution({"status": "error", "errors": ["Permission denied while opening file"]})
+    assert "Permission denied" in out["summary"]
+    assert "izin" in out["next_step"].lower()
