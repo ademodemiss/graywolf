@@ -24,6 +24,7 @@ def test_run_agent_loop_low_risk_success():
     assert out["completed_steps"] == 3
     assert len(out["trace"]) == 3
     assert out["final"]["state"] == "tamamlandı"
+    assert out["trace"][0]["final_reason"] == "completed"
 
 
 def test_run_agent_loop_confirm_required_stops():
@@ -48,7 +49,8 @@ def test_run_agent_loop_failed_can_skip_and_continue():
     out = run_agent_loop("bana bir program yap", step_runner=fake_runner, max_steps=4)
     assert out["status"] == "ok"
     assert len(out["trace"]) >= 3
-    assert out["trace"][1]["recovery_attempt"] in {"skip_step", "insert_fallback"}
+    assert out["trace"][1]["recovery_strategy"] in {"skip_step", "fallback_step", "alternative_step"}
+    assert out["trace"][1]["recovery_attempt"] >= 1
 
 
 def test_wait_for_task_completion_reads_processed_result(tmp_path: Path):
@@ -73,7 +75,7 @@ def test_run_agent_loop_timeout_retries_then_recovers_with_skip():
     out = run_agent_loop("bana bir program yap", step_runner=fake_runner, max_steps=3, timeout_retries=1)
     assert out["status"] == "ok"
     assert out["trace"][0]["attempts"] == 2
-    assert out["trace"][0]["recovery_attempt"] in {"skip_step", "insert_fallback"}
+    assert out["trace"][0]["recovery_strategy"] in {"skip_step", "fallback_step"}
 
 
 def test_build_plan_empty_goal_raises():
@@ -133,8 +135,10 @@ def test_run_agent_loop_resume_from_next_step():
     assert out["trace"][1]["index"] == 2
 
 
-def test_run_agent_loop_blocked_uses_single_replan_then_stops():
+def test_run_agent_loop_blocked_uses_adaptive_replan_then_stops():
     def fake_runner(step: str, idx: int, total: int) -> dict:
+        if "alternatif yaklaşım" in step.lower():
+            return {"status": "blocked", "summary": "alternatif de bloklandı"}
         if "fallback" in step.lower():
             return {"status": "blocked", "summary": "fallback da bloklandı"}
         if "deploy" in step.lower():
@@ -144,4 +148,22 @@ def test_run_agent_loop_blocked_uses_single_replan_then_stops():
     out = run_agent_loop("production deploy yap", step_runner=fake_runner, max_steps=3)
     assert out["status"] == "error"
     assert any(t.get("replanned") for t in out["trace"])
-    assert any(t.get("fallback_used") for t in out["trace"])
+    assert any(t.get("alternatives_tried") for t in out["trace"])
+    assert out["trace"][0]["replan_depth"] <= 1
+
+
+def test_run_agent_loop_failed_tries_two_recovery_strategies_when_needed():
+    def fake_runner(step: str, idx: int, total: int) -> dict:
+        if "alternatif yaklaşım" in step.lower():
+            return {"status": "failed", "summary": "alternatif başarısız"}
+        if idx == 1:
+            return {"status": "failed", "summary": "ilk adım başarısız"}
+        return {"status": "completed", "summary": "ok"}
+
+    out = run_agent_loop("sistemde sağlık kontrolü yap", step_runner=fake_runner, max_steps=3)
+    assert out["status"] == "ok"
+    first = out["trace"][0]
+    assert first["replan_depth"] == 1
+    assert "alternative_step" in first["alternatives_tried"]
+    assert first["recovery_attempt"] == 2
+    assert first["recovery_strategy"] == "skip_step"
