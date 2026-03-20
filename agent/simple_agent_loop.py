@@ -85,6 +85,21 @@ def _fallback_step(failed_step: str) -> str:
     return f"Güvenli fallback: önce durum/log kontrolü yap ve ardından devam et ({failed_step})"
 
 
+def _alternative_step(failed_step: str, failure_class: str) -> str:
+    if failure_class == "blocked":
+        return f"Alternatif yaklaşım: bağımlılık/izin önkontrolü yapıp tekrar dene ({failed_step})"
+    return f"Alternatif yaklaşım: farklı sırada/alt parçalarla uygula ({failed_step})"
+
+
+def _strategy_order(failure_class: str, safe_to_skip: bool) -> list[str]:
+    if failure_class == "timeout":
+        return ["skip_step" if safe_to_skip else "fallback_step"]
+    if failure_class == "blocked":
+        return ["alternative_step", "fallback_step"]
+    # failed / unknown
+    return ["alternative_step", "skip_step" if safe_to_skip else "fallback_step"]
+
+
 def save_agent_state(state_dir: str, run_id: str, state: dict) -> str:
     d = Path(state_dir)
     d.mkdir(parents=True, exist_ok=True)
@@ -134,57 +149,100 @@ def run_agent_loop(
     idx = start_index
 
     while idx <= len(plan):
-        step = plan[idx - 1]
+        original_step = plan[idx - 1]
+        step = original_step
         attempts = 0
         out: dict = {}
         ev: dict = {"accepted": False, "status": "unknown", "reason": "not_started"}
 
-        while attempts <= max(0, timeout_retries):
-            attempts += 1
-            out = step_runner(step, idx, len(plan))
-            ev = evaluate_step(out)
-
-            if ev["accepted"]:
+        def _execute(candidate_step: str) -> tuple[dict, dict, int]:
+            local_attempts = 0
+            local_out: dict = {}
+            local_ev: dict = {"accepted": False, "status": "unknown", "reason": "not_started"}
+            while local_attempts <= max(0, timeout_retries):
+                local_attempts += 1
+                local_out = step_runner(candidate_step, idx, len(plan))
+                local_ev = evaluate_step(local_out)
+                if local_ev["accepted"]:
+                    break
+                if local_ev["reason"] == "timeout" and local_attempts <= max(0, timeout_retries):
+                    continue
                 break
-            if ev["reason"] == "timeout" and attempts <= max(0, timeout_retries):
-                continue
-            break
+            return local_out, local_ev, local_attempts
+
+        out, ev, attempts = _execute(step)
 
         classification = classify_failure(out)
-        step_summary = (out or {}).get("summary", "")
-        if ev.get("reason") == "timeout" and attempts > max(0, timeout_retries):
-            step_summary = f"{step_summary} Retry limiti aşıldı ({timeout_retries}).".strip()
-
-        recovery_attempt = None
+        recovery_attempt = 0
+        recovery_strategy = None
+        alternatives_tried: list[str] = []
+        replan_depth = 0
         fallback_used = False
         replanned = False
 
         if not ev["accepted"] and ev["reason"] not in {"approval_required"}:
             safe_to_skip = _is_step_safe_to_skip(step)
-            if safe_to_skip:
-                recovery_attempt = "skip_step"
-            elif replans_used < 1:
-                fallback = _fallback_step(step)
-                plan.insert(idx, fallback)
-                replans_used += 1
-                recovery_attempt = "insert_fallback"
-                fallback_used = True
-                replanned = True
-            else:
-                recovery_attempt = "stop"
+            strategies = _strategy_order(classification, safe_to_skip)
+
+            for strategy in strategies[:2]:  # recovery limit: 2
+                recovery_attempt += 1
+                recovery_strategy = strategy
+
+                if strategy == "skip_step":
+                    break
+
+                if strategy == "alternative_step" and classification in {"failed", "blocked"} and replan_depth < 1:
+                    alt = _alternative_step(original_step, classification)
+                    alternatives_tried.append("alternative_step")
+                    plan[idx - 1] = alt
+                    step = alt
+                    replan_depth = 1
+                    replanned = True
+                    out, ev, attempts = _execute(step)
+                    classification = classify_failure(out)
+                    if ev["accepted"]:
+                        break
+                    continue
+
+                if strategy == "fallback_step" and replan_depth < 1:
+                    fb = _fallback_step(original_step)
+                    alternatives_tried.append("fallback_step")
+                    plan[idx - 1] = fb
+                    step = fb
+                    replan_depth = 1
+                    fallback_used = True
+                    replanned = True
+                    out, ev, attempts = _execute(step)
+                    classification = classify_failure(out)
+                    if ev["accepted"]:
+                        break
+                    continue
+
+        step_summary = (out or {}).get("summary", "")
+        if ev.get("reason") == "timeout" and attempts > max(0, timeout_retries):
+            step_summary = f"{step_summary} Retry limiti aşıldı ({timeout_retries}).".strip()
+
+        final_reason = "completed" if ev.get("accepted") else f"stopped:{ev.get('reason', 'unknown')}"
+        if not ev.get("accepted") and recovery_attempt >= 2:
+            final_reason = "recovery_limit_reached"
 
         trace.append(
             {
                 "index": idx,
                 "step": step,
+                "original_step": original_step,
                 "attempts": attempts,
                 "result": out,
                 "summary": step_summary,
                 "evaluation": ev,
                 "recovery_attempt": recovery_attempt,
+                "recovery_strategy": recovery_strategy,
+                "alternatives_tried": alternatives_tried,
+                "replan_depth": replan_depth,
                 "fallback_used": fallback_used,
                 "replanned": replanned,
                 "failure_classification": classification,
+                "final_reason": final_reason,
             }
         )
 
@@ -206,11 +264,7 @@ def run_agent_loop(
                     },
                 }
 
-            if recovery_attempt == "skip_step":
-                idx += 1
-                continue
-
-            if recovery_attempt == "insert_fallback":
+            if recovery_strategy == "skip_step":
                 idx += 1
                 continue
 
@@ -223,7 +277,7 @@ def run_agent_loop(
                     "completed_steps": idx - 1,
                     "final": {
                         "state": "yarım kaldı",
-                        "reason": f"Adım {idx} timeout oldu, recovery sonrası da tamamlanamadı.",
+                        "reason": f"Adım {idx} timeout oldu, recovery limiti içinde toparlanamadı.",
                     },
                 }
 
@@ -235,7 +289,7 @@ def run_agent_loop(
                 "completed_steps": idx - 1,
                 "final": {
                     "state": "yarım kaldı",
-                    "reason": f"Adım {idx} başarısız oldu: {(out or {}).get('status', 'unknown')}",
+                    "reason": f"Adım {idx} başarısız oldu: {(out or {}).get('status', 'unknown')} (recovery limiti aşıldı veya sonuç alınamadı)",
                 },
             }
 
