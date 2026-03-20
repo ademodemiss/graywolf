@@ -134,6 +134,14 @@ def find_state_by_request_id(state_dir: str, request_id: str) -> dict | None:
     return None
 
 
+def _final_state_label(classification: str) -> str:
+    if classification == "completed":
+        return "tamamlandı"
+    if classification == "partially_completed":
+        return "kısmen tamamlandı"
+    return "yarım kaldı"
+
+
 def run_agent_loop(
     user_goal: str,
     step_runner: Callable[[str, int, int], dict],
@@ -260,6 +268,7 @@ def run_agent_loop(
                     },
                     "final": {
                         "state": "yarım kaldı",
+                        "classification": "blocked",
                         "reason": f"Adım {idx} onay bekliyor.",
                     },
                 }
@@ -268,19 +277,52 @@ def run_agent_loop(
                 idx += 1
                 continue
 
-            if ev["reason"] == "timeout":
+            completed_so_far = len([t for t in trace if (t.get("evaluation") or {}).get("accepted")])
+            majority_done = completed_so_far >= max(1, len(plan) - 1)
+            completion_step_tried = False
+            completion_success = False
+
+            if majority_done:
+                completion_step_tried = True
+                completion_step = f"Güvenli completion adımı: çıktıyı doğrula ve güvenli kapanış özeti üret ({user_goal})"
+                c_out, c_ev, c_attempts = _execute(completion_step)
+                completion_success = bool((c_ev or {}).get("accepted"))
+                trace.append(
+                    {
+                        "index": idx,
+                        "step": completion_step,
+                        "original_step": completion_step,
+                        "attempts": c_attempts,
+                        "result": c_out,
+                        "summary": (c_out or {}).get("summary", ""),
+                        "evaluation": c_ev,
+                        "recovery_attempt": 1,
+                        "recovery_strategy": "completion_step",
+                        "alternatives_tried": ["completion_step"],
+                        "replan_depth": 0,
+                        "fallback_used": False,
+                        "replanned": False,
+                        "failure_classification": classify_failure(c_out),
+                        "final_reason": "completion_step_success" if completion_success else "completion_step_failed",
+                    }
+                )
+
+            if completion_success:
                 return {
-                    "status": "error",
+                    "status": "ok",
                     "goal": user_goal,
                     "plan": plan,
                     "trace": trace,
-                    "completed_steps": idx - 1,
+                    "completed_steps": len([t for t in trace if (t.get("evaluation") or {}).get("accepted")]),
                     "final": {
-                        "state": "yarım kaldı",
-                        "reason": f"Adım {idx} timeout oldu, recovery limiti içinde toparlanamadı.",
+                        "state": _final_state_label("partially_completed"),
+                        "classification": "partially_completed",
+                        "reason": f"Adım {idx} başarısız olsa da güvenli completion adımıyla run kapatıldı.",
                     },
                 }
 
+            final_class = "blocked" if classification == "blocked" else "failed"
+            reason_tail = "completion denemesi başarısız." if completion_step_tried else "completion denemesi uygulanmadı."
             return {
                 "status": "error",
                 "goal": user_goal,
@@ -288,8 +330,9 @@ def run_agent_loop(
                 "trace": trace,
                 "completed_steps": idx - 1,
                 "final": {
-                    "state": "yarım kaldı",
-                    "reason": f"Adım {idx} başarısız oldu: {(out or {}).get('status', 'unknown')} (recovery limiti aşıldı veya sonuç alınamadı)",
+                    "state": _final_state_label(final_class),
+                    "classification": final_class,
+                    "reason": f"Adım {idx} başarısız oldu: {(out or {}).get('status', 'unknown')} ({reason_tail})",
                 },
             }
 
@@ -302,7 +345,8 @@ def run_agent_loop(
         "trace": trace,
         "completed_steps": len([t for t in trace if (t.get('evaluation') or {}).get('accepted')]),
         "final": {
-            "state": "tamamlandı",
+            "state": _final_state_label("completed"),
+            "classification": "completed",
             "reason": f"{len(trace)} adım işlendi; recovery/replan varsa trace üzerinde işlendi.",
         },
     }
