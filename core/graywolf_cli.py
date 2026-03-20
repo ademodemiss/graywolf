@@ -282,6 +282,16 @@ def cmd_approve(args: argparse.Namespace) -> dict:
     if not state:
         return out
 
+    out['run_id'] = state.get('run_id')
+
+    continuity = dict((state or {}).get('continuity') or {})
+    approved_ids = list(continuity.get('approved_request_ids') or [])
+    if args.request_id not in approved_ids:
+        approved_ids.append(args.request_id)
+    continuity['approved_request_ids'] = approved_ids
+    continuity['approve_count'] = len(approved_ids)
+    state['continuity'] = continuity
+
     pause = (state or {}).get('pause') or {}
     pause_step = int(pause.get('step_index') or 1)
 
@@ -669,6 +679,19 @@ def cmd_agent(args: argparse.Namespace) -> dict:
     out['mode'] = 'run'
     out['run_id'] = run_id
 
+    prev_continuity = dict((resumed_state or {}).get('continuity') or {}) if resumed_state else {}
+    approved_ids = list(prev_continuity.get('approved_request_ids') or [])
+    continuity = {
+        'run_id': run_id,
+        'resume_count': int(prev_continuity.get('resume_count') or 0) + (1 if resumed_state else 0),
+        'pause_count': int(prev_continuity.get('pause_count') or 0) + (1 if out.get('status') == 'confirm_required' else 0),
+        'approved_request_ids': approved_ids,
+    }
+    if out.get('status') == 'confirm_required':
+        continuity['last_approval_request_id'] = ((out.get('pause') or {}).get('approval_request_id'))
+
+    out['continuity'] = continuity
+
     state_payload = {
         'run_id': run_id,
         'goal': goal,
@@ -679,6 +702,7 @@ def cmd_agent(args: argparse.Namespace) -> dict:
         'plan': out.get('plan') or [],
         'trace': out.get('trace') or [],
         'pause': out.get('pause') or {},
+        'continuity': continuity,
         'next_step_index': int(((out.get('pause') or {}).get('step_index') or 0)) + 1 if out.get('status') == 'confirm_required' else None,
         'final': out.get('final') or {},
     }
