@@ -24,6 +24,7 @@ def test_run_agent_loop_low_risk_success():
     assert out["completed_steps"] == 3
     assert len(out["trace"]) == 3
     assert out["final"]["state"] == "tamamlandı"
+    assert out["final"]["classification"] == "completed"
     assert out["trace"][0]["final_reason"] == "completed"
 
 
@@ -38,6 +39,7 @@ def test_run_agent_loop_confirm_required_stops():
     assert out["completed_steps"] == 0
     assert len(out["trace"]) == 1
     assert out["final"]["state"] == "yarım kaldı"
+    assert out["final"]["classification"] == "blocked"
 
 
 def test_run_agent_loop_failed_can_skip_and_continue():
@@ -167,3 +169,20 @@ def test_run_agent_loop_failed_tries_two_recovery_strategies_when_needed():
     assert "alternative_step" in first["alternatives_tried"]
     assert first["recovery_attempt"] == 2
     assert first["recovery_strategy"] == "skip_step"
+
+
+def test_run_agent_loop_completion_step_marks_partial_completion():
+    def fake_runner(step: str, idx: int, total: int) -> dict:
+        s = step.lower()
+        if "güvenli completion adımı" in s:
+            return {"status": "completed", "summary": "completion check başarılı"}
+        if "alternatif yaklaşım" in s or "fallback" in s:
+            return {"status": "failed", "summary": "recovery başarısız"}
+        if idx == total:
+            return {"status": "failed", "summary": "son adım başarısız"}
+        return {"status": "completed", "summary": "ok"}
+
+    out = run_agent_loop("production deploy yap", step_runner=fake_runner, max_steps=3)
+    assert out["status"] == "ok"
+    assert out["final"]["classification"] == "partially_completed"
+    assert any(t.get("recovery_strategy") == "completion_step" for t in out["trace"])
