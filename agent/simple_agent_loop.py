@@ -250,6 +250,9 @@ def run_agent_loop(
                 "fallback_used": fallback_used,
                 "replanned": replanned,
                 "failure_classification": classification,
+                "completion_attempted": False,
+                "completion_success": False,
+                "completion_reason": "not_attempted",
                 "final_reason": final_reason,
             }
         )
@@ -281,12 +284,16 @@ def run_agent_loop(
             majority_done = completed_so_far >= max(1, len(plan) - 1)
             completion_step_tried = False
             completion_success = False
+            completion_reason = "not_attempted"
 
             if majority_done:
                 completion_step_tried = True
+                completion_reason = "majority_done"
                 completion_step = f"Güvenli completion adımı: çıktıyı doğrula ve güvenli kapanış özeti üret ({user_goal})"
                 c_out, c_ev, c_attempts = _execute(completion_step)
                 completion_success = bool((c_ev or {}).get("accepted"))
+                if not completion_success:
+                    completion_reason = "closure_attempt_failed"
                 trace.append(
                     {
                         "index": idx,
@@ -303,9 +310,17 @@ def run_agent_loop(
                         "fallback_used": False,
                         "replanned": False,
                         "failure_classification": classify_failure(c_out),
+                        "completion_attempted": True,
+                        "completion_success": completion_success,
+                        "completion_reason": completion_reason if completion_success else "closure_attempt_failed",
                         "final_reason": "completion_step_success" if completion_success else "completion_step_failed",
                     }
                 )
+
+            if completion_step_tried and trace:
+                trace[-1]["completion_attempted"] = True
+                trace[-1]["completion_success"] = completion_success
+                trace[-1]["completion_reason"] = "majority_done" if completion_success else "closure_attempt_failed"
 
             if completion_success:
                 return {
