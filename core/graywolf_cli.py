@@ -667,13 +667,13 @@ def cmd_agent(args: argparse.Namespace) -> dict:
             goal,
             step_runner=_runner,
             max_steps=int(resumed_state.get('max_steps') or args.max_steps),
-            timeout_retries=1,
+            timeout_retries=2,
             start_index=int(resumed_state.get('next_step_index') or 1),
             existing_plan=list(resumed_state.get('plan') or []),
             existing_trace=list(resumed_state.get('trace') or []),
         )
     else:
-        out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps, timeout_retries=1)
+        out = run_agent_loop(goal, step_runner=_runner, max_steps=args.max_steps, timeout_retries=2)
 
     out['command'] = 'agent'
     out['mode'] = 'run'
