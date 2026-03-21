@@ -52,6 +52,7 @@ HELP_MAP = {
     'monitor': 'graywolf monitor start|stop|status -> daemon kontrol',
     'report': 'graywolf report daily|weekly -> ops summary raporu üretir',
     'agent': 'graywolf agent --goal "..." [--max-steps 5] [--plan-only] -> tek ajan planla/yürüt',
+    'assistant': 'graywolf assistant --message "..." [--max-steps 5] -> doğal dilden goal çıkarıp agent çalıştır',
 }
 
 
@@ -572,6 +573,112 @@ def cmd_report(args: argparse.Namespace) -> dict:
     }
 
 
+def _infer_goal_with_llm(message: str) -> dict:
+    text = (message or '').strip()
+    if not text:
+        return {'goal': '', 'intent': 'execute', 'confidence': 0.0, 'provider': 'none'}
+
+    parsed = parse_command(text, source='graywolf-assistant')
+    inferred = {
+        'goal': text,
+        'intent': parsed.get('intent', 'execute'),
+        'confidence': float(parsed.get('confidence', 0.2)),
+        'provider': 'heuristic',
+    }
+
+    try:
+        from core.llm_router import LLMRouter
+
+        llm = LLMRouter().get()
+        prompt = (
+            'Aşağıdaki kullanıcı mesajından kısa bir uygulanabilir goal çıkar. '
+            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute"}.\n\n'
+            f'Mesaj: {text}'
+        )
+        raw = llm.generate_response(prompt)
+        if isinstance(raw, str):
+            raw_text = raw.strip().strip('`')
+            try:
+                data = json.loads(raw_text)
+            except Exception:
+                data = None
+            if isinstance(data, dict) and str(data.get('goal', '')).strip():
+                inferred['goal'] = str(data.get('goal')).strip()
+                inferred['intent'] = str(data.get('intent') or inferred['intent']).strip() or inferred['intent']
+                inferred['provider'] = 'llm'
+                inferred['confidence'] = max(inferred['confidence'], 0.7)
+    except Exception:
+        pass
+
+    return inferred
+
+
+def cmd_assistant(args: argparse.Namespace) -> dict:
+    message = (args.message or '').strip()
+    if not message:
+        return {'status': 'error', 'command': 'assistant', 'errors': ['empty_message']}
+
+    inferred = _infer_goal_with_llm(message)
+    goal = (inferred.get('goal') or '').strip()
+    if not goal:
+        return {'status': 'error', 'command': 'assistant', 'errors': ['empty_goal_after_parse']}
+
+    plan = build_plan(goal, max_steps=args.max_steps)
+
+    if args.plan_only:
+        ux = {
+            'summary': f'Goal çıkarıldı ve plan hazır ({len(plan)} adım).',
+            'next_step': 'Yürütmek için `graywolf assistant --message "..."` komutunu plan-only olmadan çalıştır.',
+        }
+        return {
+            'status': 'ok',
+            'command': 'assistant',
+            'mode': 'plan_only',
+            'message': message,
+            'goal': goal,
+            'intent': inferred.get('intent'),
+            'inference': inferred,
+            'plan': plan,
+            'ux': ux,
+            'ux_quality': score_ux_output(ux),
+        }
+
+    agent_args = SimpleNamespace(
+        goal=goal,
+        max_steps=args.max_steps,
+        source=args.source,
+        session_id=args.session_id,
+        plan_only=False,
+        resume_run_id='',
+    )
+    agent_out = cmd_agent(agent_args)
+
+    trace = list(agent_out.get('trace') or [])
+    progress = {
+        'planned_steps': len(agent_out.get('plan') or plan),
+        'completed_steps': int(agent_out.get('completed_steps') or 0),
+        'trace_steps': len(trace),
+    }
+    final = agent_out.get('final') or {}
+
+    ux = {
+        'summary': f"Goal işlendi: {goal[:120]}. Son durum: {final.get('classification', agent_out.get('status', 'unknown'))}.",
+        'next_step': 'Onay gerekiyorsa `graywolf approvals` + `graywolf approve <request_id>` ile devam et.' if agent_out.get('status') == 'confirm_required' else 'Detay için trace/final alanlarını inceleyebilirsin.',
+    }
+
+    return {
+        **agent_out,
+        'command': 'assistant',
+        'message': message,
+        'goal': goal,
+        'intent': inferred.get('intent'),
+        'inference': inferred,
+        'progress': progress,
+        'ux': ux,
+        'ux_quality': score_ux_output(ux),
+    }
+
+
 def cmd_agent(args: argparse.Namespace) -> dict:
     goal = (args.goal or '').strip()
     if not goal:
@@ -748,6 +855,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp_agent.add_argument('--plan-only', action='store_true')
     sp_agent.add_argument('--resume-run-id', default='')
     sp_agent.set_defaults(handler=cmd_agent)
+
+    sp_assistant = sub.add_parser('assistant', help='Natural-language assistant entrypoint for agent loop')
+    sp_assistant.add_argument('--message', required=True)
+    sp_assistant.add_argument('--max-steps', type=int, default=4)
+    sp_assistant.add_argument('--source', default='graywolf-assistant')
+    sp_assistant.add_argument('--session-id', default='graywolf-assistant')
+    sp_assistant.add_argument('--plan-only', action='store_true')
+    sp_assistant.set_defaults(handler=cmd_assistant)
 
     sp_approve = sub.add_parser('approve', help='Approve a pending request id')
     sp_approve.add_argument('request_id')
