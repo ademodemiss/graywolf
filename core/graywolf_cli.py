@@ -299,7 +299,7 @@ def cmd_approve(args: argparse.Namespace) -> dict:
 
     tracked = None
     if task_id:
-        tracked = wait_for_task_completion(task_id, processed_dir=str(ROOT / 'tasks' / 'processed'), timeout_seconds=90)
+        tracked = wait_for_task_completion(task_id, processed_dir=str(ROOT / 'tasks' / 'processed'), timeout_seconds=360)
 
     trace = list((state or {}).get('trace') or [])
     plan = list((state or {}).get('plan') or [])
