@@ -16,6 +16,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import uuid4
 
 from agent.command_parser import parse_command
@@ -298,7 +299,7 @@ def cmd_approve(args: argparse.Namespace) -> dict:
 
     tracked = None
     if task_id:
-        tracked = wait_for_task_completion(task_id, processed_dir=str(ROOT / 'tasks' / 'processed'), timeout_seconds=45)
+        tracked = wait_for_task_completion(task_id, processed_dir=str(ROOT / 'tasks' / 'processed'), timeout_seconds=90)
 
     trace = list((state or {}).get('trace') or [])
     plan = list((state or {}).get('plan') or [])
