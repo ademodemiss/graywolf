@@ -286,7 +286,7 @@ def run_agent_loop(
             completion_success = False
             completion_reason = "not_attempted"
 
-            if majority_done:
+            if majority_done and classification != "blocked":
                 completion_step_tried = True
                 completion_reason = "majority_done"
                 completion_step = f"Güvenli completion adımı: çıktıyı doğrula ve güvenli kapanış özeti üret ({user_goal})"
