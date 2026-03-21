@@ -26,6 +26,7 @@ def test_run_agent_loop_low_risk_success():
     assert out["final"]["state"] == "tamamlandı"
     assert out["final"]["classification"] == "completed"
     assert out["trace"][0]["final_reason"] == "completed"
+    assert out["trace"][0]["completion_attempted"] is False
 
 
 def test_run_agent_loop_confirm_required_stops():
@@ -186,3 +187,5 @@ def test_run_agent_loop_completion_step_marks_partial_completion():
     assert out["status"] == "ok"
     assert out["final"]["classification"] == "partially_completed"
     assert any(t.get("recovery_strategy") == "completion_step" for t in out["trace"])
+    assert any(t.get("completion_attempted") is True for t in out["trace"])
+    assert any(t.get("completion_success") is True for t in out["trace"])
