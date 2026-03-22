@@ -23,9 +23,33 @@ INTENT_KEYWORDS = {
     "analyze": ("analiz", "analysis", "incele", "report"),
 }
 
+LOW_RISK_SCRIPT_PATTERNS = (
+    "script yaz",
+    "python script yaz",
+    "basit script oluştur",
+    "script oluştur",
+)
+
+HIGH_RISK_GUARD_PATTERNS = (
+    "deploy",
+    "production",
+    "release",
+    "migrate",
+    "delete",
+    "drop",
+)
+
 
 def infer_intent_with_confidence(command: str) -> tuple[str, float]:
     lowered = (command or "").lower()
+
+    # Dar intent tuning:
+    # Düşük risk script üretim istekleri gereksiz execute->confirm zincirine düşmesin.
+    # High-risk çağrışım varsa bu kural devreye girmez.
+    # chat_command policy'de ALLOW olduğundan burada en güvenli dar eşleme olarak kullanılır.
+    if any(p in lowered for p in LOW_RISK_SCRIPT_PATTERNS) and not any(h in lowered for h in HIGH_RISK_GUARD_PATTERNS):
+        return "chat_command", 0.72
+
     scores: dict[str, float] = {}
     for intent, keywords in INTENT_KEYWORDS.items():
         matches = sum(1 for k in keywords if k in lowered)

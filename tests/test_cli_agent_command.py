@@ -64,3 +64,29 @@ def test_assistant_empty_message_errors():
     payload = json.loads(p.stdout.strip().splitlines()[-1])
     assert payload['status'] == 'error'
     assert 'empty_message' in payload.get('errors', [])
+
+
+def test_assistant_script_request_prefers_chat_command_intent():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'iki sayıyı toplayan basit bir python script yaz', '--plan-only', '--max-steps', '3'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['intent'] == 'chat_command'
+
+
+def test_assistant_high_risk_phrase_keeps_deploy_intent():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'production deploy script yaz', '--plan-only', '--max-steps', '3'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['intent'] == 'deploy'
