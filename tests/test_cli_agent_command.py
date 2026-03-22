@@ -90,3 +90,45 @@ def test_assistant_high_risk_phrase_keeps_deploy_intent():
     payload = json.loads(p.stdout.strip().splitlines()[-1])
     assert payload['status'] == 'ok'
     assert payload['intent'] == 'deploy'
+
+
+def test_assistant_merhaba_goes_chat_mode():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'Merhaba'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+
+
+def test_assistant_nasilsin_goes_chat_mode():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'Nasılsın'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+
+
+def test_assistant_script_message_is_task_path_not_chat_mode():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'iki sayıyı toplayan script yaz', '--plan-only', '--max-steps', '3'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'plan_only'
+    assert payload.get('triage', {}).get('kind') == 'task'
