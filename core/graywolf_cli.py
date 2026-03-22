@@ -614,10 +614,55 @@ def _infer_goal_with_llm(message: str) -> dict:
     return inferred
 
 
+def _triage_message_kind(message: str) -> tuple[str, str]:
+    text = (message or '').strip().lower()
+    if not text:
+        return 'chat', 'empty'
+
+    chat_patterns = (
+        'merhaba', 'selam', 'nasılsın', 'iyi misin',
+        'bana ne yapabildiğini söyle', 'yardım', 'help',
+    )
+    task_patterns = (
+        ' yaz', 'oluştur', 'yap', 'çalıştır', 'düzelt', 'analiz et', 'rapor hazırla', 'script oluştur',
+    )
+
+    if any(p in text for p in chat_patterns):
+        return 'chat', 'chat_pattern'
+
+    if any(p in text for p in task_patterns):
+        return 'task', 'task_pattern'
+
+    return 'chat', 'uncertain_clarify'
+
+
 def cmd_assistant(args: argparse.Namespace) -> dict:
     message = (args.message or '').strip()
     if not message:
         return {'status': 'error', 'command': 'assistant', 'errors': ['empty_message']}
+
+    kind, triage_reason = _triage_message_kind(message)
+    if kind == 'chat':
+        if triage_reason == 'uncertain_clarify':
+            summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
+            next_step = 'Kısa net görev yaz: örn. `iki sayıyı toplayan script yaz`.'
+        elif 'yardım' in message.lower() or 'help' in message.lower() or 'ne yapabildiğini' in message.lower():
+            summary = 'Graywolf: görev planlama/yürütme, approval-resume, precheck ve kısa operasyon raporları yapabilirim.'
+            next_step = 'Görev vermek için: `bir python script yaz` gibi net bir istek yaz.'
+        else:
+            summary = 'Merhaba 👋 Buradayım. Sohbet edebiliriz veya görev verebilirsin.'
+            next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'
+
+        ux = {'summary': summary, 'next_step': next_step}
+        return {
+            'status': 'ok',
+            'command': 'assistant',
+            'mode': 'chat',
+            'message': message,
+            'triage': {'kind': kind, 'reason': triage_reason},
+            'ux': ux,
+            'ux_quality': score_ux_output(ux),
+        }
 
     inferred = _infer_goal_with_llm(message)
     goal = (inferred.get('goal') or '').strip()
@@ -639,6 +684,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'goal': goal,
             'intent': inferred.get('intent'),
             'inference': inferred,
+            'triage': {'kind': kind, 'reason': triage_reason},
             'plan': plan,
             'ux': ux,
             'ux_quality': score_ux_output(ux),
@@ -674,6 +720,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'goal': goal,
         'intent': inferred.get('intent'),
         'inference': inferred,
+        'triage': {'kind': kind, 'reason': triage_reason},
         'progress': progress,
         'ux': ux,
         'ux_quality': score_ux_output(ux),
