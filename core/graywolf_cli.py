@@ -14,6 +14,7 @@ import json
 import os
 import subprocess
 import sys
+import unicodedata
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -672,8 +673,14 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
         return None
 
 
+def _normalize_for_match(text: str) -> str:
+    base = (text or '').strip().casefold()
+    decomposed = unicodedata.normalize('NFKD', base)
+    return ''.join(ch for ch in decomposed if not unicodedata.combining(ch))
+
+
 def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str]:
-    text = (message or '').strip().lower()
+    text = _normalize_for_match(message)
     triage_debug = os.getenv('GW_TRIAGE_DEBUG', '0').strip().lower() in {'1', 'true', 'on', 'yes'}
     if not text:
         if triage_debug:
@@ -681,11 +688,12 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
         return 'chat', 'empty'
 
     chat_patterns = (
-        'merhaba', 'selam', 'nasılsın', 'iyi misin',
-        'bana ne yapabildiğini söyle', 'yardım', 'help',
+        'merhaba', 'selam', 'nasilsin', 'iyi misin',
+        'bana ne yapabildigini soyle', 'yardim', 'help',
+        'sen kimsin', 'kimsin',
     )
     task_patterns = (
-        ' yaz', 'oluştur', 'yap', 'çalıştır', 'düzelt', 'analiz et', 'rapor hazırla', 'script oluştur',
+        ' yaz', 'olustur', 'yap', 'calistir', 'duzelt', 'analiz et', 'rapor hazirla', 'script olustur',
     )
 
     if any(p in text for p in chat_patterns):
@@ -739,13 +747,17 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
     context_blob = context_pack.get('context_blob', '')
 
     kind, triage_reason = _triage_message_kind(message, context_blob=context_blob)
+    normalized_message = _normalize_for_match(message)
     if kind in {'chat', 'unclear'}:
         if triage_reason in {'uncertain_clarify', 'llm_unclear'} or kind == 'unclear':
             summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
             next_step = 'Kısa net görev yaz: örn. `iki sayıyı toplayan script yaz`.'
-        elif 'yardım' in message.lower() or 'help' in message.lower() or 'ne yapabildiğini' in message.lower():
+        elif 'yardim' in normalized_message or 'help' in normalized_message or 'ne yapabildigini' in normalized_message:
             summary = 'Graywolf: görev planlama/yürütme, approval-resume, precheck ve kısa operasyon raporları yapabilirim.'
             next_step = 'Görev vermek için: `bir python script yaz` gibi net bir istek yaz.'
+        elif 'sen kimsin' in normalized_message or 'kimsin' in normalized_message:
+            summary = 'Ben Graywolf asistanıyım; sohbet ederim ve verdiğin görevleri güvenli akışla planlayıp yürütürüm.'
+            next_step = 'İstersen hemen bir görev ver: `iki sayıyı toplayan script yaz`.'
         else:
             summary = 'Merhaba 👋 Buradayım. Sohbet edebiliriz veya görev verebilirsin.'
             next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'

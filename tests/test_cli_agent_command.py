@@ -132,3 +132,19 @@ def test_assistant_script_message_is_task_path_not_chat_mode():
     assert payload['status'] == 'ok'
     assert payload['mode'] == 'plan_only'
     assert payload.get('triage', {}).get('kind') == 'task'
+
+
+def test_assistant_sen_kimsin_goes_chat_identity_not_unclear():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'SEN KİMSİN'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') != 'uncertain_clarify'
+    assert 'graywolf' in payload.get('ux', {}).get('summary', '').lower()
