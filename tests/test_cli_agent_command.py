@@ -51,6 +51,8 @@ def test_assistant_plan_only_outputs_goal_and_plan():
     assert isinstance(payload.get('goal'), str) and payload['goal'].strip()
     assert isinstance(payload.get('plan'), list)
     assert len(payload['plan']) == 4
+    assert isinstance(payload.get('orchestration_hint'), dict)
+    assert payload['orchestration_hint'].get('intent') in {'healthcheck', 'analyze', 'execute', 'deploy', 'chat_command'}
 
 
 def test_assistant_empty_message_errors():
@@ -77,6 +79,9 @@ def test_assistant_script_request_prefers_chat_command_intent():
     payload = json.loads(p.stdout.strip().splitlines()[-1])
     assert payload['status'] == 'ok'
     assert payload['intent'] == 'chat_command'
+    hint = payload.get('orchestration_hint') or {}
+    assert hint.get('route') == 'safe_execute'
+    assert hint.get('risk') == 'low'
 
 
 def test_assistant_high_risk_phrase_keeps_deploy_intent():
@@ -148,3 +153,35 @@ def test_assistant_sen_kimsin_goes_chat_identity_not_unclear():
     assert payload.get('triage', {}).get('kind') == 'chat'
     assert payload.get('triage', {}).get('reason') != 'uncertain_clarify'
     assert 'graywolf' in payload.get('ux', {}).get('summary', '').lower()
+
+
+def test_assistant_weather_question_goes_chat_not_unclear():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'GİRESUN HAVA DURUMU NEDİR ?'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') == 'chat_pattern'
+    assert 'hava durumu' in payload.get('ux', {}).get('summary', '').lower()
+
+
+def test_assistant_generic_question_goes_chat_question_mode():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'Python list nedir?'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') == 'chat_question'
+    assert 'sohbet sorusu' in payload.get('ux', {}).get('summary', '').lower()

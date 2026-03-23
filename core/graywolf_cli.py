@@ -577,6 +577,46 @@ def cmd_report(args: argparse.Namespace) -> dict:
     }
 
 
+VALID_ASSISTANT_INTENTS = {'deploy', 'healthcheck', 'analyze', 'execute', 'chat_command'}
+
+
+ASSISTANT_TOOL_ROUTE = {
+    'deploy': {'route': 'approval_required', 'tool_family': 'runtime.submit_command', 'risk': 'high'},
+    'healthcheck': {'route': 'direct_safe', 'tool_family': 'runtime.status_or_health', 'risk': 'low'},
+    'analyze': {'route': 'analysis_first', 'tool_family': 'orchestrator.analysis', 'risk': 'medium'},
+    'execute': {'route': 'confirm_first', 'tool_family': 'runtime.submit_command', 'risk': 'medium'},
+    'chat_command': {'route': 'safe_execute', 'tool_family': 'runtime.submit_command', 'risk': 'low'},
+}
+
+
+def _extract_json_dict(raw: str) -> dict | None:
+    text = (raw or '').strip()
+    if not text:
+        return None
+    if text.startswith('```'):
+        lines = [ln for ln in text.splitlines() if not ln.strip().startswith('```')]
+        text = '\n'.join(lines).strip()
+    try:
+        data = json.loads(text)
+    except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _normalize_intent(intent: str | None, default_intent: str) -> str:
+    candidate = str(intent or '').strip().lower()
+    if candidate in VALID_ASSISTANT_INTENTS:
+        return candidate
+    return default_intent
+
+
+def _orchestration_hint(intent: str | None) -> dict:
+    normalized = _normalize_intent(intent, 'execute')
+    hint = ASSISTANT_TOOL_ROUTE.get(normalized, ASSISTANT_TOOL_ROUTE['execute']).copy()
+    hint['intent'] = normalized
+    return hint
+
+
 def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
     text = (message or '').strip()
     if not text:
@@ -590,28 +630,37 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
         'provider': 'heuristic',
     }
 
+    if os.getenv('GW_ASSISTANT_LLM', '1').strip().lower() in {'0', 'false', 'off', 'no'}:
+        return inferred
+
     try:
         from core.llm_router import LLMRouter
 
         llm = LLMRouter().get()
         prompt = (
             'Aşağıdaki kullanıcı mesajından kısa bir uygulanabilir goal çıkar. '
-            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute|chat_command"}.\n\n'
+            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute|chat_command", "confidence": 0.0}.\n\n'
             f'Mesaj: {text}\n\n'
             f'Bağlam özeti:\n{context_blob}'
         )
         raw = llm.generate_response(prompt)
         if isinstance(raw, str):
-            raw_text = raw.strip().strip('`')
-            try:
-                data = json.loads(raw_text)
-            except Exception:
-                data = None
-            if isinstance(data, dict) and str(data.get('goal', '')).strip():
-                inferred['goal'] = str(data.get('goal')).strip()
-                inferred['intent'] = str(data.get('intent') or inferred['intent']).strip() or inferred['intent']
-                inferred['provider'] = 'llm'
-                inferred['confidence'] = max(inferred['confidence'], 0.7)
+            data = _extract_json_dict(raw)
+            if isinstance(data, dict):
+                llm_goal = str(data.get('goal', '')).strip()
+                llm_intent = _normalize_intent(data.get('intent'), inferred['intent'])
+                try:
+                    llm_confidence = float(data.get('confidence', 0.0))
+                except Exception:
+                    llm_confidence = 0.0
+
+                # Conservative adoption: intent/goal only if usable.
+                if llm_goal:
+                    inferred['goal'] = llm_goal
+                inferred['intent'] = llm_intent
+                if llm_goal or llm_intent != parsed.get('intent', 'execute'):
+                    inferred['provider'] = 'llm'
+                    inferred['confidence'] = max(inferred['confidence'], min(max(llm_confidence, 0.0), 1.0), 0.7)
     except Exception:
         pass
 
@@ -643,12 +692,7 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
         if not isinstance(raw, str):
             return None
 
-        raw_text = raw.strip()
-        if raw_text.startswith('```'):
-            lines = [ln for ln in raw_text.splitlines() if not ln.strip().startswith('```')]
-            raw_text = '\n'.join(lines).strip()
-
-        data = json.loads(raw_text)
+        data = _extract_json_dict(raw)
         if not isinstance(data, dict):
             return None
 
@@ -664,9 +708,9 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
         reason = str(data.get('reason') or '').strip()[:64] or f'llm_{kind}'
         return {
             'kind': kind,
-            'confidence': confidence,
+            'confidence': min(max(confidence, 0.0), 1.0),
             'reason': reason,
-            'intent': data.get('intent'),
+            'intent': _normalize_intent(data.get('intent'), 'execute') if data.get('intent') is not None else None,
             'goal': data.get('goal'),
         }
     except Exception:
@@ -691,10 +735,12 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
         'merhaba', 'selam', 'nasilsin', 'iyi misin',
         'bana ne yapabildigini soyle', 'yardim', 'help',
         'sen kimsin', 'kimsin',
+        'hava durumu', 'hava nasil', 'sicaklik',
     )
     task_patterns = (
         ' yaz', 'olustur', 'yap', 'calistir', 'duzelt', 'analiz et', 'rapor hazirla', 'script olustur',
     )
+    question_patterns = ('?', ' nedir', ' ne ', ' nasil', ' kim ', ' kimdir', ' kac', 'hangi ')
 
     if any(p in text for p in chat_patterns):
         if triage_debug:
@@ -705,6 +751,11 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
         if triage_debug:
             print('ASSISTANT_TRIAGE rule=task_pattern final=task reason=task_pattern')
         return 'task', 'task_pattern'
+
+    if any(p in text for p in question_patterns):
+        if triage_debug:
+            print('ASSISTANT_TRIAGE rule=chat_question final=chat reason=chat_question')
+        return 'chat', 'chat_question'
 
     llm_triage = _infer_triage_with_llm(message, context_blob=context_blob)
     if not llm_triage:
@@ -752,12 +803,18 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         if triage_reason in {'uncertain_clarify', 'llm_unclear'} or kind == 'unclear':
             summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
             next_step = 'Kısa net görev yaz: örn. `iki sayıyı toplayan script yaz`.'
+        elif triage_reason == 'chat_question':
+            summary = 'Sorunu sohbet sorusu olarak algıladım.'
+            next_step = 'Detay istersen daha net sor: örn. `Giresun bugün hava durumu` veya `Python list nedir?`.'
         elif 'yardim' in normalized_message or 'help' in normalized_message or 'ne yapabildigini' in normalized_message:
             summary = 'Graywolf: görev planlama/yürütme, approval-resume, precheck ve kısa operasyon raporları yapabilirim.'
             next_step = 'Görev vermek için: `bir python script yaz` gibi net bir istek yaz.'
         elif 'sen kimsin' in normalized_message or 'kimsin' in normalized_message:
             summary = 'Ben Graywolf asistanıyım; sohbet ederim ve verdiğin görevleri güvenli akışla planlayıp yürütürüm.'
             next_step = 'İstersen hemen bir görev ver: `iki sayıyı toplayan script yaz`.'
+        elif 'hava durumu' in normalized_message or 'hava nasil' in normalized_message or 'sicaklik' in normalized_message:
+            summary = 'Hava durumu sorusu sohbet olarak algılandı.'
+            next_step = 'Canlı veri için şehir + zaman belirt: örn. `Giresun bugün hava durumu`.'
         else:
             summary = 'Merhaba 👋 Buradayım. Sohbet edebiliriz veya görev verebilirsin.'
             next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'
@@ -798,6 +855,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'goal': goal,
             'intent': inferred.get('intent'),
             'inference': inferred,
+            'orchestration_hint': _orchestration_hint(inferred.get('intent')),
             'triage': {'kind': kind, 'reason': triage_reason},
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
@@ -839,6 +897,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'goal': goal,
         'intent': inferred.get('intent'),
         'inference': inferred,
+        'orchestration_hint': _orchestration_hint(inferred.get('intent')),
         'triage': {'kind': kind, 'reason': triage_reason},
         'context_budget': {
             'max_tokens': context_pack.get('max_tokens'),
