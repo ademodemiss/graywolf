@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from collections import Counter
@@ -614,6 +615,60 @@ def _infer_goal_with_llm(message: str) -> dict:
     return inferred
 
 
+def _infer_triage_with_llm(message: str) -> dict | None:
+    text = (message or '').strip()
+    if not text:
+        return None
+
+    # Kolay rollback: GW_TRIAGE_LLM=0 ile LLM triage tamamen kapanır.
+    if os.getenv('GW_TRIAGE_LLM', '1').strip().lower() in {'0', 'false', 'off', 'no'}:
+        return None
+
+    try:
+        from core.llm_router import LLMRouter
+
+        llm = LLMRouter().get()
+        prompt = (
+            'Kullanıcı mesajını sınıflandır. Sadece JSON döndür. Ek metin yazma.\\n'
+            '{"kind":"chat|task|unclear", "confidence":0.0, "reason":"short", '
+            '"intent":"deploy|healthcheck|analyze|execute|chat_command|null", '
+            '"goal":"short or empty"}\\n\\n'
+            f'Mesaj: {text}'
+        )
+        raw = llm.generate_response(prompt)
+        if not isinstance(raw, str):
+            return None
+
+        raw_text = raw.strip()
+        if raw_text.startswith('```'):
+            lines = [ln for ln in raw_text.splitlines() if not ln.strip().startswith('```')]
+            raw_text = '\n'.join(lines).strip()
+
+        data = json.loads(raw_text)
+        if not isinstance(data, dict):
+            return None
+
+        kind = str(data.get('kind', '')).strip().lower()
+        if kind not in {'chat', 'task', 'unclear'}:
+            return None
+
+        try:
+            confidence = float(data.get('confidence', 0.0))
+        except Exception:
+            confidence = 0.0
+
+        reason = str(data.get('reason') or '').strip()[:64] or f'llm_{kind}'
+        return {
+            'kind': kind,
+            'confidence': confidence,
+            'reason': reason,
+            'intent': data.get('intent'),
+            'goal': data.get('goal'),
+        }
+    except Exception:
+        return None
+
+
 def _triage_message_kind(message: str) -> tuple[str, str]:
     text = (message or '').strip().lower()
     if not text:
@@ -633,6 +688,25 @@ def _triage_message_kind(message: str) -> tuple[str, str]:
     if any(p in text for p in task_patterns):
         return 'task', 'task_pattern'
 
+    llm_triage = _infer_triage_with_llm(message)
+    if not llm_triage:
+        return 'chat', 'uncertain_clarify'
+
+    llm_kind = str(llm_triage.get('kind') or '').strip().lower()
+    try:
+        llm_confidence = float(llm_triage.get('confidence') or 0.0)
+    except Exception:
+        llm_confidence = 0.0
+
+    if llm_kind == 'task' and llm_confidence >= 0.70:
+        return 'task', 'llm_task'
+
+    if llm_kind == 'chat' and llm_confidence >= 0.55:
+        return 'chat', 'llm_chat'
+
+    if llm_kind == 'unclear':
+        return 'unclear', 'llm_unclear'
+
     return 'chat', 'uncertain_clarify'
 
 
@@ -642,8 +716,8 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         return {'status': 'error', 'command': 'assistant', 'errors': ['empty_message']}
 
     kind, triage_reason = _triage_message_kind(message)
-    if kind == 'chat':
-        if triage_reason == 'uncertain_clarify':
+    if kind in {'chat', 'unclear'}:
+        if triage_reason in {'uncertain_clarify', 'llm_unclear'} or kind == 'unclear':
             summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
             next_step = 'Kısa net görev yaz: örn. `iki sayıyı toplayan script yaz`.'
         elif 'yardım' in message.lower() or 'help' in message.lower() or 'ne yapabildiğini' in message.lower():
