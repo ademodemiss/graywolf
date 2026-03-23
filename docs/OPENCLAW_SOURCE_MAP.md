@@ -6,7 +6,7 @@ Bu dosya, Graywolf'a graft/uyarlama sırasında OpenClaw kaynak izini takip etme
 |---|---|---|---|---|
 | core/graywolf_cli.py (assistant/chat karar katmanı) | openclaw message/agent flow davranış modeli | adapted | in-progress | phase-2 chat contract iyileştirildi |
 | core/assistant_context.py | openclaw context assembly yaklaşımı | adapted | in-progress | 100k clamp korunacak |
-| telegram_bot.py | openclaw channel UX yaklaşımı | adapted | planned | Telegram parity hedefi |
+| telegram_bot.py | openclaw channel UX yaklaşımı | adapted | in-progress | phase-4 response contract/chunking iyileştirildi |
 | core/llm_router.py | openclaw model routing/fallback yaklaşımı | adapted | in-progress | phase-3 decision contract + fallback sıkılaştırıldı |
 | core/runtime.py | n/a | reference-only | locked | Graywolf çekirdeği korunacak |
 

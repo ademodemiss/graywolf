@@ -17,9 +17,12 @@ RUN_TIMEOUT = 180
 
 
 def split_chunks(text: str, limit: int = MAX_TG) -> list[str]:
-    text = text or ""
+    text = (text or "").strip()
+    if not text:
+        return ["(çıktı yok)"]
     if len(text) <= limit:
         return [text]
+
     chunks: list[str] = []
     start = 0
     while start < len(text):
@@ -30,9 +33,12 @@ def split_chunks(text: str, limit: int = MAX_TG) -> list[str]:
             if nl > 200:
                 chunk = chunk[:nl]
                 end = start + nl
-        chunks.append(chunk)
+        chunk = chunk.strip()
+        if chunk:
+            chunks.append(chunk)
         start = end
-    return chunks
+
+    return chunks or ["(çıktı yok)"]
 
 
 def _run_graywolf(args: list[str]) -> dict:
@@ -62,28 +68,43 @@ def _format_result(res: dict) -> str:
     if isinstance(js, dict):
         status = js.get("status", "unknown")
         command = js.get("command", "unknown")
+        mode = js.get("mode")
+        triage = js.get("triage") if isinstance(js.get("triage"), dict) else {}
         summary = (((js.get("ux") or {}).get("summary")) if isinstance(js.get("ux"), dict) else None) or ""
+        next_step = (((js.get("ux") or {}).get("next_step")) if isinstance(js.get("ux"), dict) else None) or ""
         final = js.get("final") if isinstance(js.get("final"), dict) else {}
         reason = final.get("reason") or ""
         classification = final.get("classification") or ""
 
         lines = [f"status: {status}", f"command: {command}"]
+        if mode:
+            lines.append(f"mode: {mode}")
+        if triage.get("kind"):
+            lines.append(f"triage: {triage.get('kind')} ({triage.get('reason', 'n/a')})")
         if summary:
             lines.append(f"summary: {summary}")
+        if next_step:
+            lines.append(f"next_step: {next_step}")
         if classification:
             lines.append(f"classification: {classification}")
         if reason:
             lines.append(f"reason: {reason}")
+
+        errors = js.get("errors") if isinstance(js.get("errors"), list) else []
+        if errors:
+            lines.append(f"errors: {', '.join(str(x) for x in errors[:5])}")
+
         if js.get("run_id"):
             lines.append(f"run_id: {js['run_id']}")
         if js.get("pause") and isinstance(js["pause"], dict):
             apr = js["pause"].get("approval_request_id")
             if apr:
                 lines.append(f"approval_request_id: {apr}")
+
         return "\n".join(lines)
 
     out = res.get("stdout") or res.get("stderr") or "(çıktı yok)"
-    return out
+    return out.strip() or "(çıktı yok)"
 
 
 async def _reply_long(update: Update, text: str) -> None:
