@@ -577,6 +577,30 @@ def cmd_report(args: argparse.Namespace) -> dict:
     }
 
 
+VALID_ASSISTANT_INTENTS = {'deploy', 'healthcheck', 'analyze', 'execute', 'chat_command'}
+
+
+def _extract_json_dict(raw: str) -> dict | None:
+    text = (raw or '').strip()
+    if not text:
+        return None
+    if text.startswith('```'):
+        lines = [ln for ln in text.splitlines() if not ln.strip().startswith('```')]
+        text = '\n'.join(lines).strip()
+    try:
+        data = json.loads(text)
+    except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _normalize_intent(intent: str | None, default_intent: str) -> str:
+    candidate = str(intent or '').strip().lower()
+    if candidate in VALID_ASSISTANT_INTENTS:
+        return candidate
+    return default_intent
+
+
 def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
     text = (message or '').strip()
     if not text:
@@ -590,28 +614,37 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
         'provider': 'heuristic',
     }
 
+    if os.getenv('GW_ASSISTANT_LLM', '1').strip().lower() in {'0', 'false', 'off', 'no'}:
+        return inferred
+
     try:
         from core.llm_router import LLMRouter
 
         llm = LLMRouter().get()
         prompt = (
             'Aşağıdaki kullanıcı mesajından kısa bir uygulanabilir goal çıkar. '
-            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute|chat_command"}.\n\n'
+            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute|chat_command", "confidence": 0.0}.\n\n'
             f'Mesaj: {text}\n\n'
             f'Bağlam özeti:\n{context_blob}'
         )
         raw = llm.generate_response(prompt)
         if isinstance(raw, str):
-            raw_text = raw.strip().strip('`')
-            try:
-                data = json.loads(raw_text)
-            except Exception:
-                data = None
-            if isinstance(data, dict) and str(data.get('goal', '')).strip():
-                inferred['goal'] = str(data.get('goal')).strip()
-                inferred['intent'] = str(data.get('intent') or inferred['intent']).strip() or inferred['intent']
-                inferred['provider'] = 'llm'
-                inferred['confidence'] = max(inferred['confidence'], 0.7)
+            data = _extract_json_dict(raw)
+            if isinstance(data, dict):
+                llm_goal = str(data.get('goal', '')).strip()
+                llm_intent = _normalize_intent(data.get('intent'), inferred['intent'])
+                try:
+                    llm_confidence = float(data.get('confidence', 0.0))
+                except Exception:
+                    llm_confidence = 0.0
+
+                # Conservative adoption: intent/goal only if usable.
+                if llm_goal:
+                    inferred['goal'] = llm_goal
+                inferred['intent'] = llm_intent
+                if llm_goal or llm_intent != parsed.get('intent', 'execute'):
+                    inferred['provider'] = 'llm'
+                    inferred['confidence'] = max(inferred['confidence'], min(max(llm_confidence, 0.0), 1.0), 0.7)
     except Exception:
         pass
 
@@ -643,12 +676,7 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
         if not isinstance(raw, str):
             return None
 
-        raw_text = raw.strip()
-        if raw_text.startswith('```'):
-            lines = [ln for ln in raw_text.splitlines() if not ln.strip().startswith('```')]
-            raw_text = '\n'.join(lines).strip()
-
-        data = json.loads(raw_text)
+        data = _extract_json_dict(raw)
         if not isinstance(data, dict):
             return None
 
@@ -664,9 +692,9 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
         reason = str(data.get('reason') or '').strip()[:64] or f'llm_{kind}'
         return {
             'kind': kind,
-            'confidence': confidence,
+            'confidence': min(max(confidence, 0.0), 1.0),
             'reason': reason,
-            'intent': data.get('intent'),
+            'intent': _normalize_intent(data.get('intent'), 'execute') if data.get('intent') is not None else None,
             'goal': data.get('goal'),
         }
     except Exception:
