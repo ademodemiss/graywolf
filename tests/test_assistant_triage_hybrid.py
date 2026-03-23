@@ -9,7 +9,7 @@ from core import graywolf_cli as cli
 def test_triage_keeps_rule_based_chat_without_llm(monkeypatch):
     called = {'v': False}
 
-    def _fake(_message):
+    def _fake(_message, **_kwargs):
         called['v'] = True
         return {'kind': 'task', 'confidence': 0.99}
 
@@ -23,7 +23,7 @@ def test_triage_keeps_rule_based_chat_without_llm(monkeypatch):
 def test_triage_keeps_rule_based_task_without_llm(monkeypatch):
     called = {'v': False}
 
-    def _fake(_message):
+    def _fake(_message, **_kwargs):
         called['v'] = True
         return {'kind': 'chat', 'confidence': 0.99}
 
@@ -35,21 +35,21 @@ def test_triage_keeps_rule_based_task_without_llm(monkeypatch):
 
 
 def test_triage_uncertain_uses_llm_chat(monkeypatch):
-    monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m: {'kind': 'chat', 'confidence': 0.88})
+    monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m, **_kwargs: {'kind': 'chat', 'confidence': 0.88})
     kind, reason = cli._triage_message_kind('bugün hava nasıl')
     assert kind == 'chat'
     assert reason == 'llm_chat'
 
 
 def test_triage_uncertain_uses_llm_task_high_confidence(monkeypatch):
-    monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m: {'kind': 'task', 'confidence': 0.91})
+    monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m, **_kwargs: {'kind': 'task', 'confidence': 0.91})
     kind, reason = cli._triage_message_kind('logları toparlayıp bir özet geç')
     assert kind == 'task'
     assert reason == 'llm_task'
 
 
 def test_triage_uncertain_llm_unclear_kept_unclear(monkeypatch):
-    monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m: {'kind': 'unclear', 'confidence': 0.75})
+    monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m, **_kwargs: {'kind': 'unclear', 'confidence': 0.75})
     kind, reason = cli._triage_message_kind('bakar mısın bir şeye')
     assert kind == 'unclear'
     assert reason == 'llm_unclear'
@@ -98,7 +98,7 @@ def test_llm_triage_invalid_enum_kind_falls_back(monkeypatch):
 
 
 def test_cmd_assistant_unclear_does_not_trigger_task_path(monkeypatch):
-    monkeypatch.setattr(cli, '_triage_message_kind', lambda _m: ('unclear', 'llm_unclear'))
+    monkeypatch.setattr(cli, '_triage_message_kind', lambda _m, **_kwargs: ('unclear', 'llm_unclear'))
 
     def _should_not_run(_m):
         raise AssertionError('task path should not run for unclear triage')
