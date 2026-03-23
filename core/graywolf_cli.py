@@ -29,6 +29,7 @@ from agent.simple_agent_loop import (
     save_agent_state,
     wait_for_task_completion,
 )
+from core.assistant_context import assemble_assistant_context
 from core.assistant_explainer import explain_execution, score_ux_output
 
 ROOT = Path('/home/adem/graywolf')
@@ -575,7 +576,7 @@ def cmd_report(args: argparse.Namespace) -> dict:
     }
 
 
-def _infer_goal_with_llm(message: str) -> dict:
+def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
     text = (message or '').strip()
     if not text:
         return {'goal': '', 'intent': 'execute', 'confidence': 0.0, 'provider': 'none'}
@@ -594,8 +595,9 @@ def _infer_goal_with_llm(message: str) -> dict:
         llm = LLMRouter().get()
         prompt = (
             'Aşağıdaki kullanıcı mesajından kısa bir uygulanabilir goal çıkar. '
-            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute"}.\n\n'
-            f'Mesaj: {text}'
+            'Sadece JSON döndür: {"goal": "...", "intent": "deploy|healthcheck|analyze|execute|chat_command"}.\n\n'
+            f'Mesaj: {text}\n\n'
+            f'Bağlam özeti:\n{context_blob}'
         )
         raw = llm.generate_response(prompt)
         if isinstance(raw, str):
@@ -615,7 +617,7 @@ def _infer_goal_with_llm(message: str) -> dict:
     return inferred
 
 
-def _infer_triage_with_llm(message: str) -> dict | None:
+def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
     text = (message or '').strip()
     if not text:
         return None
@@ -633,7 +635,8 @@ def _infer_triage_with_llm(message: str) -> dict | None:
             '{"kind":"chat|task|unclear", "confidence":0.0, "reason":"short", '
             '"intent":"deploy|healthcheck|analyze|execute|chat_command|null", '
             '"goal":"short or empty"}\\n\\n'
-            f'Mesaj: {text}'
+            f'Mesaj: {text}\\n\\n'
+            f'Bağlam özeti:\\n{context_blob}'
         )
         raw = llm.generate_response(prompt)
         if not isinstance(raw, str):
@@ -669,9 +672,12 @@ def _infer_triage_with_llm(message: str) -> dict | None:
         return None
 
 
-def _triage_message_kind(message: str) -> tuple[str, str]:
+def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str]:
     text = (message or '').strip().lower()
+    triage_debug = os.getenv('GW_TRIAGE_DEBUG', '0').strip().lower() in {'1', 'true', 'on', 'yes'}
     if not text:
+        if triage_debug:
+            print('ASSISTANT_TRIAGE rule=empty final=chat reason=empty')
         return 'chat', 'empty'
 
     chat_patterns = (
@@ -683,13 +689,19 @@ def _triage_message_kind(message: str) -> tuple[str, str]:
     )
 
     if any(p in text for p in chat_patterns):
+        if triage_debug:
+            print('ASSISTANT_TRIAGE rule=chat_pattern final=chat reason=chat_pattern')
         return 'chat', 'chat_pattern'
 
     if any(p in text for p in task_patterns):
+        if triage_debug:
+            print('ASSISTANT_TRIAGE rule=task_pattern final=task reason=task_pattern')
         return 'task', 'task_pattern'
 
-    llm_triage = _infer_triage_with_llm(message)
+    llm_triage = _infer_triage_with_llm(message, context_blob=context_blob)
     if not llm_triage:
+        if triage_debug:
+            print('ASSISTANT_TRIAGE llm=none final=chat reason=uncertain_clarify')
         return 'chat', 'uncertain_clarify'
 
     llm_kind = str(llm_triage.get('kind') or '').strip().lower()
@@ -699,14 +711,22 @@ def _triage_message_kind(message: str) -> tuple[str, str]:
         llm_confidence = 0.0
 
     if llm_kind == 'task' and llm_confidence >= 0.70:
+        if triage_debug:
+            print(f'ASSISTANT_TRIAGE llm={llm_kind}:{llm_confidence:.2f} final=task reason=llm_task')
         return 'task', 'llm_task'
 
     if llm_kind == 'chat' and llm_confidence >= 0.55:
+        if triage_debug:
+            print(f'ASSISTANT_TRIAGE llm={llm_kind}:{llm_confidence:.2f} final=chat reason=llm_chat')
         return 'chat', 'llm_chat'
 
     if llm_kind == 'unclear':
+        if triage_debug:
+            print(f'ASSISTANT_TRIAGE llm={llm_kind}:{llm_confidence:.2f} final=unclear reason=llm_unclear')
         return 'unclear', 'llm_unclear'
 
+    if triage_debug:
+        print(f'ASSISTANT_TRIAGE llm={llm_kind}:{llm_confidence:.2f} final=chat reason=uncertain_clarify')
     return 'chat', 'uncertain_clarify'
 
 
@@ -715,7 +735,10 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
     if not message:
         return {'status': 'error', 'command': 'assistant', 'errors': ['empty_message']}
 
-    kind, triage_reason = _triage_message_kind(message)
+    context_pack = assemble_assistant_context(message=message, session_id=args.session_id, source=args.source)
+    context_blob = context_pack.get('context_blob', '')
+
+    kind, triage_reason = _triage_message_kind(message, context_blob=context_blob)
     if kind in {'chat', 'unclear'}:
         if triage_reason in {'uncertain_clarify', 'llm_unclear'} or kind == 'unclear':
             summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
@@ -734,11 +757,16 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'mode': 'chat',
             'message': message,
             'triage': {'kind': kind, 'reason': triage_reason},
+            'context_budget': {
+                'max_tokens': context_pack.get('max_tokens'),
+                'used_tokens': context_pack.get('used_tokens'),
+                'sections': context_pack.get('sections'),
+            },
             'ux': ux,
             'ux_quality': score_ux_output(ux),
         }
 
-    inferred = _infer_goal_with_llm(message)
+    inferred = _infer_goal_with_llm(message, context_blob=context_blob)
     goal = (inferred.get('goal') or '').strip()
     if not goal:
         return {'status': 'error', 'command': 'assistant', 'errors': ['empty_goal_after_parse']}
@@ -759,6 +787,11 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'intent': inferred.get('intent'),
             'inference': inferred,
             'triage': {'kind': kind, 'reason': triage_reason},
+            'context_budget': {
+                'max_tokens': context_pack.get('max_tokens'),
+                'used_tokens': context_pack.get('used_tokens'),
+                'sections': context_pack.get('sections'),
+            },
             'plan': plan,
             'ux': ux,
             'ux_quality': score_ux_output(ux),
@@ -795,6 +828,11 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'intent': inferred.get('intent'),
         'inference': inferred,
         'triage': {'kind': kind, 'reason': triage_reason},
+        'context_budget': {
+            'max_tokens': context_pack.get('max_tokens'),
+            'used_tokens': context_pack.get('used_tokens'),
+            'sections': context_pack.get('sections'),
+        },
         'progress': progress,
         'ux': ux,
         'ux_quality': score_ux_output(ux),
