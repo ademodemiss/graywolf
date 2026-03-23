@@ -51,6 +51,8 @@ def test_assistant_plan_only_outputs_goal_and_plan():
     assert isinstance(payload.get('goal'), str) and payload['goal'].strip()
     assert isinstance(payload.get('plan'), list)
     assert len(payload['plan']) == 4
+    assert isinstance(payload.get('orchestration_hint'), dict)
+    assert payload['orchestration_hint'].get('intent') in {'healthcheck', 'analyze', 'execute', 'deploy', 'chat_command'}
 
 
 def test_assistant_empty_message_errors():
@@ -77,6 +79,9 @@ def test_assistant_script_request_prefers_chat_command_intent():
     payload = json.loads(p.stdout.strip().splitlines()[-1])
     assert payload['status'] == 'ok'
     assert payload['intent'] == 'chat_command'
+    hint = payload.get('orchestration_hint') or {}
+    assert hint.get('route') == 'safe_execute'
+    assert hint.get('risk') == 'low'
 
 
 def test_assistant_high_risk_phrase_keeps_deploy_intent():

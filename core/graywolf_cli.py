@@ -580,6 +580,15 @@ def cmd_report(args: argparse.Namespace) -> dict:
 VALID_ASSISTANT_INTENTS = {'deploy', 'healthcheck', 'analyze', 'execute', 'chat_command'}
 
 
+ASSISTANT_TOOL_ROUTE = {
+    'deploy': {'route': 'approval_required', 'tool_family': 'runtime.submit_command', 'risk': 'high'},
+    'healthcheck': {'route': 'direct_safe', 'tool_family': 'runtime.status_or_health', 'risk': 'low'},
+    'analyze': {'route': 'analysis_first', 'tool_family': 'orchestrator.analysis', 'risk': 'medium'},
+    'execute': {'route': 'confirm_first', 'tool_family': 'runtime.submit_command', 'risk': 'medium'},
+    'chat_command': {'route': 'safe_execute', 'tool_family': 'runtime.submit_command', 'risk': 'low'},
+}
+
+
 def _extract_json_dict(raw: str) -> dict | None:
     text = (raw or '').strip()
     if not text:
@@ -599,6 +608,13 @@ def _normalize_intent(intent: str | None, default_intent: str) -> str:
     if candidate in VALID_ASSISTANT_INTENTS:
         return candidate
     return default_intent
+
+
+def _orchestration_hint(intent: str | None) -> dict:
+    normalized = _normalize_intent(intent, 'execute')
+    hint = ASSISTANT_TOOL_ROUTE.get(normalized, ASSISTANT_TOOL_ROUTE['execute']).copy()
+    hint['intent'] = normalized
+    return hint
 
 
 def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
@@ -839,6 +855,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'goal': goal,
             'intent': inferred.get('intent'),
             'inference': inferred,
+            'orchestration_hint': _orchestration_hint(inferred.get('intent')),
             'triage': {'kind': kind, 'reason': triage_reason},
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
@@ -880,6 +897,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'goal': goal,
         'intent': inferred.get('intent'),
         'inference': inferred,
+        'orchestration_hint': _orchestration_hint(inferred.get('intent')),
         'triage': {'kind': kind, 'reason': triage_reason},
         'context_budget': {
             'max_tokens': context_pack.get('max_tokens'),
