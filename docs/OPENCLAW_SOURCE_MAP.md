@@ -4,11 +4,11 @@ Bu dosya, Graywolf'a graft/uyarlama sırasında OpenClaw kaynak izini takip etme
 
 | Graywolf target | OpenClaw source | Mode | Status | Notes |
 |---|---|---|---|---|
-| core/graywolf_cli.py (assistant/chat karar katmanı) | openclaw message/agent flow davranış modeli | adapted | in-progress | phase-2 chat contract iyileştirildi |
-| core/assistant_context.py | openclaw context assembly yaklaşımı | adapted | in-progress | 100k clamp korunacak |
-| telegram_bot.py | openclaw channel UX yaklaşımı | adapted | in-progress | phase-4 response contract/chunking iyileştirildi |
-| core/llm_router.py | openclaw model routing/fallback yaklaşımı | adapted | in-progress | phase-3 decision contract + fallback sıkılaştırıldı |
-| core/orchestrator.py + assistant orchestration_hint (graywolf_cli) | openclaw tool orchestration yaklaşımı | adapted | in-progress | phase-5 üst katman route/risk hint eklendi |
+| core/graywolf_cli.py (assistant/chat karar katmanı) | openclaw message/agent flow davranış modeli | adapted | done | phase-2+6 acceptance tamamlandı |
+| core/assistant_context.py | openclaw context assembly yaklaşımı | adapted | done | 100k clamp + summarized memory aktif |
+| telegram_bot.py | openclaw channel UX yaklaşımı | adapted | done | phase-4+6 channel contract doğrulandı |
+| core/llm_router.py | openclaw model routing/fallback yaklaşımı | adapted | done | phase-3+6 decision fallback doğrulandı |
+| core/orchestrator.py + assistant orchestration_hint (graywolf_cli) | openclaw tool orchestration yaklaşımı | adapted | done | phase-5+6 orchestration hint doğrulandı |
 | core/runtime.py | n/a | reference-only | locked | Graywolf çekirdeği korunacak |
 
 ## Rules
