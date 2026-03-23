@@ -691,10 +691,12 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
         'merhaba', 'selam', 'nasilsin', 'iyi misin',
         'bana ne yapabildigini soyle', 'yardim', 'help',
         'sen kimsin', 'kimsin',
+        'hava durumu', 'hava nasil', 'sicaklik',
     )
     task_patterns = (
         ' yaz', 'olustur', 'yap', 'calistir', 'duzelt', 'analiz et', 'rapor hazirla', 'script olustur',
     )
+    question_patterns = ('?', ' nedir', ' ne ', ' nasil', ' kim ', ' kimdir', ' kac', 'hangi ')
 
     if any(p in text for p in chat_patterns):
         if triage_debug:
@@ -705,6 +707,11 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
         if triage_debug:
             print('ASSISTANT_TRIAGE rule=task_pattern final=task reason=task_pattern')
         return 'task', 'task_pattern'
+
+    if any(p in text for p in question_patterns):
+        if triage_debug:
+            print('ASSISTANT_TRIAGE rule=chat_question final=chat reason=chat_question')
+        return 'chat', 'chat_question'
 
     llm_triage = _infer_triage_with_llm(message, context_blob=context_blob)
     if not llm_triage:
@@ -752,12 +759,18 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         if triage_reason in {'uncertain_clarify', 'llm_unclear'} or kind == 'unclear':
             summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
             next_step = 'Kısa net görev yaz: örn. `iki sayıyı toplayan script yaz`.'
+        elif triage_reason == 'chat_question':
+            summary = 'Sorunu sohbet sorusu olarak algıladım.'
+            next_step = 'Detay istersen daha net sor: örn. `Giresun bugün hava durumu` veya `Python list nedir?`.'
         elif 'yardim' in normalized_message or 'help' in normalized_message or 'ne yapabildigini' in normalized_message:
             summary = 'Graywolf: görev planlama/yürütme, approval-resume, precheck ve kısa operasyon raporları yapabilirim.'
             next_step = 'Görev vermek için: `bir python script yaz` gibi net bir istek yaz.'
         elif 'sen kimsin' in normalized_message or 'kimsin' in normalized_message:
             summary = 'Ben Graywolf asistanıyım; sohbet ederim ve verdiğin görevleri güvenli akışla planlayıp yürütürüm.'
             next_step = 'İstersen hemen bir görev ver: `iki sayıyı toplayan script yaz`.'
+        elif 'hava durumu' in normalized_message or 'hava nasil' in normalized_message or 'sicaklik' in normalized_message:
+            summary = 'Hava durumu sorusu sohbet olarak algılandı.'
+            next_step = 'Canlı veri için şehir + zaman belirt: örn. `Giresun bugün hava durumu`.'
         else:
             summary = 'Merhaba 👋 Buradayım. Sohbet edebiliriz veya görev verebilirsin.'
             next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'

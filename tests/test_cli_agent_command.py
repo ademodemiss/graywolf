@@ -148,3 +148,35 @@ def test_assistant_sen_kimsin_goes_chat_identity_not_unclear():
     assert payload.get('triage', {}).get('kind') == 'chat'
     assert payload.get('triage', {}).get('reason') != 'uncertain_clarify'
     assert 'graywolf' in payload.get('ux', {}).get('summary', '').lower()
+
+
+def test_assistant_weather_question_goes_chat_not_unclear():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'GİRESUN HAVA DURUMU NEDİR ?'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') == 'chat_pattern'
+    assert 'hava durumu' in payload.get('ux', {}).get('summary', '').lower()
+
+
+def test_assistant_generic_question_goes_chat_question_mode():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'Python list nedir?'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') == 'chat_question'
+    assert 'sohbet sorusu' in payload.get('ux', {}).get('summary', '').lower()
