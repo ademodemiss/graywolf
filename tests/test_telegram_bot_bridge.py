@@ -1,4 +1,4 @@
-from telegram_bot import _format_result, split_chunks
+from telegram_bot import _format_result, _sanitize_for_telegram, split_chunks
 
 
 def test_split_chunks_empty_returns_placeholder():
@@ -32,3 +32,12 @@ def test_format_result_includes_errors_when_present():
     res = {'json': {'status': 'error', 'command': 'assistant', 'errors': ['empty_message']}}
     out = _format_result(res)
     assert 'errors: empty_message' in out
+
+
+def test_sanitize_for_telegram_removes_control_chars():
+    raw = 'ok\x00\x01\nnext\tline\r\n'
+    out = _sanitize_for_telegram(raw)
+    assert '\x00' not in out
+    assert '\x01' not in out
+    assert 'ok' in out
+    assert 'next\tline' in out
