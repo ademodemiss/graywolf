@@ -15,6 +15,8 @@ import os
 import subprocess
 import sys
 import unicodedata
+import urllib.parse
+import urllib.request
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -833,6 +835,88 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
     return 'chat', 'uncertain_clarify'
 
 
+def _extract_weather_city(normalized_message: str, raw_message: str) -> str | None:
+    import re
+
+    m = re.search(r'\b([a-zcigiosu]+)(?:da|de)\b', normalized_message)
+    if m and m.group(1):
+        return m.group(1)
+
+    # fallback: first token in original message
+    raw_tokens = [t.strip(' ?!.,') for t in (raw_message or '').split() if t.strip(' ?!.,')]
+    if raw_tokens:
+        token = _normalize_for_match(raw_tokens[0])
+        if len(token) >= 3:
+            return token
+    return None
+
+
+def _weather_reply_from_wttr(message: str, normalized_message: str) -> tuple[str, str] | None:
+    if 'hava durumu' not in normalized_message and 'sicaklik' not in normalized_message and 'hava nasil' not in normalized_message:
+        return None
+
+    city = _extract_weather_city(normalized_message, message)
+    if not city:
+        return None
+
+    try:
+        url = f"https://wttr.in/{urllib.parse.quote(city)}?format=j1"
+        with urllib.request.urlopen(url, timeout=4) as r:
+            payload = json.loads(r.read().decode('utf-8', errors='ignore'))
+
+        current = ((payload.get('current_condition') or [{}])[0]) if isinstance(payload, dict) else {}
+        temp_c = current.get('temp_C')
+        feels_c = current.get('FeelsLikeC')
+        desc = ''
+        weather_desc = current.get('weatherDesc')
+        if isinstance(weather_desc, list) and weather_desc:
+            desc = (weather_desc[0] or {}).get('value') or ''
+
+        summary = f"{city.title()} için şu an {temp_c}°C"
+        if feels_c not in (None, ''):
+            summary += f", hissedilen {feels_c}°C"
+        if desc:
+            summary += f" ({desc})"
+
+        next_step = 'Detay istersen: nem, rüzgar ve gün içi tahminini de paylaşabilirim.'
+        return summary.strip(), next_step
+    except Exception:
+        return None
+
+
+def _chat_answer_with_llm(message: str, context_blob: str) -> tuple[str, str] | None:
+    if os.getenv('GW_CHAT_LLM', '1').strip().lower() in {'0', 'false', 'off', 'no'}:
+        return None
+    try:
+        from core.llm_router import LLMRouter
+
+        llm = LLMRouter().get()
+        prompt = (
+            'Kullanıcıya Türkçe, kısa ve doğrudan cevap ver. Sadece JSON döndür: '
+            '{"summary":"...","next_step":"..."}.\n\n'
+            f'Soru: {message}\n\nBağlam:\n{context_blob}'
+        )
+        raw = llm.generate_response(prompt)
+        if not isinstance(raw, str):
+            return None
+        data = _extract_json_dict(raw)
+        if not isinstance(data, dict):
+            plain = raw.strip()
+            if plain:
+                summary = plain.splitlines()[0].strip()[:400]
+                return summary, 'İstersen bunu bir göreve de çevirebilirim.'
+            return None
+        summary = str(data.get('summary') or '').strip()
+        next_step = str(data.get('next_step') or '').strip()
+        if not summary:
+            return None
+        if not next_step:
+            next_step = 'İstersen bunu bir göreve de çevirebilirim.'
+        return summary, next_step
+    except Exception:
+        return None
+
+
 def _build_tool_payload_meta(*, intent: str | None, triage_kind: str | None, session_id: str | None, source: str | None) -> dict:
     normalized_intent = _normalize_intent(intent, 'execute')
     route = _orchestration_hint(normalized_intent)
@@ -862,8 +946,12 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             summary = 'Mesajı görev mi sohbet mi net ayıramadım.'
             next_step = 'Kısa net görev yaz: örn. `iki sayıyı toplayan script yaz`.'
         elif triage_reason == 'chat_question':
-            summary = 'Sorunu sohbet sorusu olarak algıladım.'
-            next_step = 'Detay istersen daha net sor: örn. `Giresun bugün hava durumu` veya `Python list nedir?`.'
+            llm_answer = _chat_answer_with_llm(message, context_blob)
+            if llm_answer:
+                summary, next_step = llm_answer
+            else:
+                summary = 'Sorunu sohbet sorusu olarak algıladım.'
+                next_step = 'Detay istersen daha net sor: örn. `Giresun bugün hava durumu` veya `Python list nedir?`.'
         elif 'yardim' in normalized_message or 'help' in normalized_message or 'ne yapabildigini' in normalized_message:
             summary = 'Graywolf: görev planlama/yürütme, approval-resume, precheck ve kısa operasyon raporları yapabilirim.'
             next_step = 'Görev vermek için: `bir python script yaz` gibi net bir istek yaz.'
@@ -871,8 +959,12 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             summary = 'Ben Graywolf asistanıyım; sohbet ederim ve verdiğin görevleri güvenli akışla planlayıp yürütürüm.'
             next_step = 'İstersen hemen bir görev ver: `iki sayıyı toplayan script yaz`.'
         elif 'hava durumu' in normalized_message or 'hava nasil' in normalized_message or 'sicaklik' in normalized_message:
-            summary = 'Hava durumu sorusu sohbet olarak algılandı.'
-            next_step = 'Canlı veri için şehir + zaman belirt: örn. `Giresun bugün hava durumu`.'
+            weather_answer = _weather_reply_from_wttr(message, normalized_message)
+            if weather_answer:
+                summary, next_step = weather_answer
+            else:
+                summary = 'Hava durumu sorusu sohbet olarak algılandı.'
+                next_step = 'Canlı veri için şehir + zaman belirt: örn. `Giresun bugün hava durumu`.'
         else:
             summary = 'Merhaba 👋 Buradayım. Sohbet edebiliriz veya görev verebilirsin.'
             next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'

@@ -180,7 +180,8 @@ def test_assistant_weather_question_goes_chat_not_unclear():
     assert payload['mode'] == 'chat'
     assert payload.get('triage', {}).get('kind') == 'chat'
     assert payload.get('triage', {}).get('reason') == 'chat_pattern'
-    assert 'hava durumu' in payload.get('ux', {}).get('summary', '').lower()
+    summary = payload.get('ux', {}).get('summary', '').lower()
+    assert ('hava durumu' in summary) or ('°c' in summary) or ('su an' in summary)
 
 
 def test_assistant_nasilsin_goes_chat_not_unclear():
