@@ -17,6 +17,8 @@ def test_infer_goal_llm_invalid_intent_falls_back_to_heuristic(monkeypatch):
     out = cli._infer_goal_with_llm('iki sayıyı toplayan script yaz')
     assert out['goal'] == 'python script yaz'
     assert out['intent'] == 'chat_command'
+    assert out.get('trace', {}).get('llm_attempted') is True
+    assert out.get('trace', {}).get('llm_parsed') is True
 
 
 def test_infer_goal_llm_codefence_json_parsed(monkeypatch):
@@ -33,6 +35,7 @@ def test_infer_goal_llm_codefence_json_parsed(monkeypatch):
     assert out['goal'] == 'saglik kontrolu yap'
     assert out['intent'] == 'healthcheck'
     assert out['provider'] == 'llm'
+    assert out.get('trace', {}).get('llm_used') is True
 
 
 def test_infer_goal_llm_disabled_env_keeps_heuristic(monkeypatch):
@@ -50,6 +53,7 @@ def test_infer_goal_llm_disabled_env_keeps_heuristic(monkeypatch):
     out = cli._infer_goal_with_llm('iki sayıyı toplayan script yaz')
     assert out['provider'] == 'heuristic'
     assert out['intent'] == 'chat_command'
+    assert out.get('trace', {}).get('fallback_reason') == 'llm_disabled'
 
 
 def test_infer_triage_llm_invalid_json_returns_none(monkeypatch):

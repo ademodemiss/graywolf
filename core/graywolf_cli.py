@@ -644,14 +644,22 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
         'intent': parsed.get('intent', 'execute'),
         'confidence': float(parsed.get('confidence', 0.2)),
         'provider': 'heuristic',
+        'trace': {
+            'llm_attempted': False,
+            'llm_parsed': False,
+            'llm_used': False,
+            'fallback_reason': 'heuristic_default',
+        },
     }
 
     if os.getenv('GW_ASSISTANT_LLM', '1').strip().lower() in {'0', 'false', 'off', 'no'}:
+        inferred['trace']['fallback_reason'] = 'llm_disabled'
         return inferred
 
     try:
         from core.llm_router import LLMRouter
 
+        inferred['trace']['llm_attempted'] = True
         llm = LLMRouter().get()
         prompt = (
             'Aşağıdaki kullanıcı mesajından kısa bir uygulanabilir goal çıkar. '
@@ -663,6 +671,7 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
         if isinstance(raw, str):
             data = _extract_json_dict(raw)
             if isinstance(data, dict):
+                inferred['trace']['llm_parsed'] = True
                 llm_goal = str(data.get('goal', '')).strip()
                 llm_intent = _normalize_intent(data.get('intent'), inferred['intent'])
                 try:
@@ -677,8 +686,16 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
                 if llm_goal or llm_intent != parsed.get('intent', 'execute'):
                     inferred['provider'] = 'llm'
                     inferred['confidence'] = max(inferred['confidence'], min(max(llm_confidence, 0.0), 1.0), 0.7)
+                    inferred['trace']['llm_used'] = True
+                    inferred['trace']['fallback_reason'] = ''
+                else:
+                    inferred['trace']['fallback_reason'] = 'llm_not_actionable'
+            else:
+                inferred['trace']['fallback_reason'] = 'llm_parse_failed'
+        else:
+            inferred['trace']['fallback_reason'] = 'llm_non_string'
     except Exception:
-        pass
+        inferred['trace']['fallback_reason'] = 'llm_exception'
 
     return inferred
 
