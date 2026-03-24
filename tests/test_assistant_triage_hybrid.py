@@ -36,7 +36,7 @@ def test_triage_keeps_rule_based_task_without_llm(monkeypatch):
 
 def test_triage_uncertain_uses_llm_chat(monkeypatch):
     monkeypatch.setattr(cli, '_infer_triage_with_llm', lambda _m, **_kwargs: {'kind': 'chat', 'confidence': 0.88})
-    kind, reason = cli._triage_message_kind('bugün hava nasıl')
+    kind, reason = cli._triage_message_kind('buna bir bakar mısın')
     assert kind == 'chat'
     assert reason == 'llm_chat'
 
