@@ -53,6 +53,10 @@ def test_assistant_plan_only_outputs_goal_and_plan():
     assert len(payload['plan']) == 4
     assert isinstance(payload.get('orchestration_hint'), dict)
     assert payload['orchestration_hint'].get('intent') in {'healthcheck', 'analyze', 'execute', 'deploy', 'chat_command'}
+    contract = payload.get('assistant_output') or {}
+    assert contract.get('contract_version') == 'v1'
+    assert contract.get('mode') == 'plan_only'
+    assert isinstance((contract.get('response') or {}).get('summary'), str)
 
 
 def test_assistant_empty_message_errors():
@@ -109,6 +113,9 @@ def test_assistant_merhaba_goes_chat_mode():
     assert payload['status'] == 'ok'
     assert payload['mode'] == 'chat'
     assert payload.get('triage', {}).get('kind') == 'chat'
+    contract = payload.get('assistant_output') or {}
+    assert contract.get('contract_version') == 'v1'
+    assert contract.get('mode') == 'chat'
 
 
 def test_assistant_nasilsin_goes_chat_mode():

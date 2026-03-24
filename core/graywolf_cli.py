@@ -617,6 +617,22 @@ def _orchestration_hint(intent: str | None) -> dict:
     return hint
 
 
+def _assistant_output_contract(*, mode: str, triage: dict, ux: dict, orchestration_hint: dict | None = None) -> dict:
+    return {
+        'contract_version': 'v1',
+        'mode': mode,
+        'triage': {
+            'kind': (triage or {}).get('kind'),
+            'reason': (triage or {}).get('reason'),
+        },
+        'response': {
+            'summary': (ux or {}).get('summary', ''),
+            'next_step': (ux or {}).get('next_step', ''),
+        },
+        'orchestration': orchestration_hint or {},
+    }
+
+
 def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
     text = (message or '').strip()
     if not text:
@@ -829,12 +845,14 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'
 
         ux = {'summary': summary, 'next_step': next_step}
+        triage = {'kind': kind, 'reason': triage_reason}
         return {
             'status': 'ok',
             'command': 'assistant',
             'mode': 'chat',
             'message': message,
-            'triage': {'kind': kind, 'reason': triage_reason},
+            'triage': triage,
+            'assistant_output': _assistant_output_contract(mode='chat', triage=triage, ux=ux),
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
                 'used_tokens': context_pack.get('used_tokens'),
@@ -856,6 +874,8 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'summary': f'Goal çıkarıldı ve plan hazır ({len(plan)} adım).',
             'next_step': 'Yürütmek için `graywolf assistant --message "..."` komutunu plan-only olmadan çalıştır.',
         }
+        orchestration_hint = _orchestration_hint(inferred.get('intent'))
+        triage = {'kind': kind, 'reason': triage_reason}
         return {
             'status': 'ok',
             'command': 'assistant',
@@ -864,8 +884,9 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'goal': goal,
             'intent': inferred.get('intent'),
             'inference': inferred,
-            'orchestration_hint': _orchestration_hint(inferred.get('intent')),
-            'triage': {'kind': kind, 'reason': triage_reason},
+            'orchestration_hint': orchestration_hint,
+            'triage': triage,
+            'assistant_output': _assistant_output_contract(mode='plan_only', triage=triage, ux=ux, orchestration_hint=orchestration_hint),
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
                 'used_tokens': context_pack.get('used_tokens'),
@@ -899,6 +920,8 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'next_step': 'Onay gerekiyorsa `graywolf approvals` + `graywolf approve <request_id>` ile devam et.' if agent_out.get('status') == 'confirm_required' else 'Detay için trace/final alanlarını inceleyebilirsin.',
     }
 
+    orchestration_hint = _orchestration_hint(inferred.get('intent'))
+    triage = {'kind': kind, 'reason': triage_reason}
     return {
         **agent_out,
         'command': 'assistant',
@@ -906,8 +929,9 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'goal': goal,
         'intent': inferred.get('intent'),
         'inference': inferred,
-        'orchestration_hint': _orchestration_hint(inferred.get('intent')),
-        'triage': {'kind': kind, 'reason': triage_reason},
+        'orchestration_hint': orchestration_hint,
+        'triage': triage,
+        'assistant_output': _assistant_output_contract(mode='run', triage=triage, ux=ux, orchestration_hint=orchestration_hint),
         'context_budget': {
             'max_tokens': context_pack.get('max_tokens'),
             'used_tokens': context_pack.get('used_tokens'),
