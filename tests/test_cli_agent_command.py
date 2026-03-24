@@ -171,6 +171,21 @@ def test_assistant_weather_question_goes_chat_not_unclear():
     assert 'hava durumu' in payload.get('ux', {}).get('summary', '').lower()
 
 
+def test_assistant_nasilsin_goes_chat_not_unclear():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'Nasılsın'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') == 'chat_pattern'
+
+
 def test_assistant_generic_question_goes_chat_question_mode():
     p = subprocess.run(
         [str(CLI), 'assistant', '--message', 'Python list nedir?'],

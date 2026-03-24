@@ -720,7 +720,16 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
 def _normalize_for_match(text: str) -> str:
     base = (text or '').strip().casefold()
     decomposed = unicodedata.normalize('NFKD', base)
-    return ''.join(ch for ch in decomposed if not unicodedata.combining(ch))
+    cleaned = ''.join(ch for ch in decomposed if not unicodedata.combining(ch))
+    tr_map = str.maketrans({
+        'ı': 'i',
+        'ğ': 'g',
+        'ş': 's',
+        'ö': 'o',
+        'ü': 'u',
+        'ç': 'c',
+    })
+    return cleaned.translate(tr_map)
 
 
 def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str]:
