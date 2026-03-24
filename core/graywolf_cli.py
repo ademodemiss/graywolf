@@ -617,7 +617,7 @@ def _orchestration_hint(intent: str | None) -> dict:
     return hint
 
 
-def _assistant_output_contract(*, mode: str, triage: dict, ux: dict, orchestration_hint: dict | None = None) -> dict:
+def _assistant_output_contract(*, mode: str, triage: dict, ux: dict, orchestration_hint: dict | None = None, tool_payload_meta: dict | None = None) -> dict:
     return {
         'contract_version': 'v1',
         'mode': mode,
@@ -630,6 +630,7 @@ def _assistant_output_contract(*, mode: str, triage: dict, ux: dict, orchestrati
             'next_step': (ux or {}).get('next_step', ''),
         },
         'orchestration': orchestration_hint or {},
+        'tool_payload_meta': tool_payload_meta or {},
     }
 
 
@@ -831,6 +832,20 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
     return 'chat', 'uncertain_clarify'
 
 
+def _build_tool_payload_meta(*, intent: str | None, triage_kind: str | None, session_id: str | None, source: str | None) -> dict:
+    normalized_intent = _normalize_intent(intent, 'execute')
+    route = _orchestration_hint(normalized_intent)
+    return {
+        'intent': normalized_intent,
+        'triage_kind': (triage_kind or ''),
+        'route': route.get('route'),
+        'tool_family': route.get('tool_family'),
+        'risk': route.get('risk'),
+        'session_id': session_id or '',
+        'source': source or '',
+    }
+
+
 def cmd_assistant(args: argparse.Namespace) -> dict:
     message = (args.message or '').strip()
     if not message:
@@ -863,13 +878,14 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
 
         ux = {'summary': summary, 'next_step': next_step}
         triage = {'kind': kind, 'reason': triage_reason}
+        tool_payload_meta = _build_tool_payload_meta(intent='chat_command', triage_kind=kind, session_id=args.session_id, source=args.source)
         return {
             'status': 'ok',
             'command': 'assistant',
             'mode': 'chat',
             'message': message,
             'triage': triage,
-            'assistant_output': _assistant_output_contract(mode='chat', triage=triage, ux=ux),
+            'assistant_output': _assistant_output_contract(mode='chat', triage=triage, ux=ux, tool_payload_meta=tool_payload_meta),
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
                 'used_tokens': context_pack.get('used_tokens'),
@@ -893,6 +909,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         }
         orchestration_hint = _orchestration_hint(inferred.get('intent'))
         triage = {'kind': kind, 'reason': triage_reason}
+        tool_payload_meta = _build_tool_payload_meta(intent=inferred.get('intent'), triage_kind=kind, session_id=args.session_id, source=args.source)
         return {
             'status': 'ok',
             'command': 'assistant',
@@ -903,7 +920,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'inference': inferred,
             'orchestration_hint': orchestration_hint,
             'triage': triage,
-            'assistant_output': _assistant_output_contract(mode='plan_only', triage=triage, ux=ux, orchestration_hint=orchestration_hint),
+            'assistant_output': _assistant_output_contract(mode='plan_only', triage=triage, ux=ux, orchestration_hint=orchestration_hint, tool_payload_meta=tool_payload_meta),
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
                 'used_tokens': context_pack.get('used_tokens'),
@@ -939,6 +956,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
 
     orchestration_hint = _orchestration_hint(inferred.get('intent'))
     triage = {'kind': kind, 'reason': triage_reason}
+    tool_payload_meta = _build_tool_payload_meta(intent=inferred.get('intent'), triage_kind=kind, session_id=args.session_id, source=args.source)
     return {
         **agent_out,
         'command': 'assistant',
@@ -948,7 +966,7 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'inference': inferred,
         'orchestration_hint': orchestration_hint,
         'triage': triage,
-        'assistant_output': _assistant_output_contract(mode='run', triage=triage, ux=ux, orchestration_hint=orchestration_hint),
+        'assistant_output': _assistant_output_contract(mode='run', triage=triage, ux=ux, orchestration_hint=orchestration_hint, tool_payload_meta=tool_payload_meta),
         'context_budget': {
             'max_tokens': context_pack.get('max_tokens'),
             'used_tokens': context_pack.get('used_tokens'),

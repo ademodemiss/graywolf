@@ -57,6 +57,9 @@ def test_assistant_plan_only_outputs_goal_and_plan():
     assert contract.get('contract_version') == 'v1'
     assert contract.get('mode') == 'plan_only'
     assert isinstance((contract.get('response') or {}).get('summary'), str)
+    meta = contract.get('tool_payload_meta') or {}
+    assert meta.get('intent') in {'healthcheck', 'analyze', 'execute', 'deploy', 'chat_command'}
+    assert meta.get('session_id') == 'graywolf-assistant'
 
 
 def test_assistant_empty_message_errors():
@@ -116,6 +119,8 @@ def test_assistant_merhaba_goes_chat_mode():
     contract = payload.get('assistant_output') or {}
     assert contract.get('contract_version') == 'v1'
     assert contract.get('mode') == 'chat'
+    meta = contract.get('tool_payload_meta') or {}
+    assert meta.get('triage_kind') == 'chat'
 
 
 def test_assistant_nasilsin_goes_chat_mode():
