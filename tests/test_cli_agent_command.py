@@ -212,3 +212,18 @@ def test_assistant_generic_question_goes_chat_question_mode():
     assert payload.get('triage', {}).get('kind') == 'chat'
     assert payload.get('triage', {}).get('reason') == 'chat_question'
     assert 'sohbet sorusu' in payload.get('ux', {}).get('summary', '').lower()
+
+
+def test_assistant_high_risk_deploy_phrase_routes_task_not_unclear():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'productiona deploy et', '--plan-only', '--max-steps', '1'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'plan_only'
+    assert payload.get('triage', {}).get('kind') == 'task'
+    assert payload.get('triage', {}).get('reason') == 'task_pattern'

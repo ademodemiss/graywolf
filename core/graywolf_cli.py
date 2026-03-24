@@ -782,6 +782,7 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
     )
     task_patterns = (
         ' yaz', 'olustur', 'yap', 'calistir', 'duzelt', 'analiz et', 'rapor hazirla', 'script olustur',
+        'deploy', 'production', 'release', 'migrate', 'delete', 'drop',
     )
     question_patterns = ('?', ' nedir', ' ne ', ' nasil', ' kim ', ' kimdir', ' kac', 'hangi ')
 
