@@ -53,6 +53,13 @@ def test_assistant_plan_only_outputs_goal_and_plan():
     assert len(payload['plan']) == 4
     assert isinstance(payload.get('orchestration_hint'), dict)
     assert payload['orchestration_hint'].get('intent') in {'healthcheck', 'analyze', 'execute', 'deploy', 'chat_command'}
+    contract = payload.get('assistant_output') or {}
+    assert contract.get('contract_version') == 'v1'
+    assert contract.get('mode') == 'plan_only'
+    assert isinstance((contract.get('response') or {}).get('summary'), str)
+    meta = contract.get('tool_payload_meta') or {}
+    assert meta.get('intent') in {'healthcheck', 'analyze', 'execute', 'deploy', 'chat_command'}
+    assert meta.get('session_id') == 'graywolf-assistant'
 
 
 def test_assistant_empty_message_errors():
@@ -109,6 +116,11 @@ def test_assistant_merhaba_goes_chat_mode():
     assert payload['status'] == 'ok'
     assert payload['mode'] == 'chat'
     assert payload.get('triage', {}).get('kind') == 'chat'
+    contract = payload.get('assistant_output') or {}
+    assert contract.get('contract_version') == 'v1'
+    assert contract.get('mode') == 'chat'
+    meta = contract.get('tool_payload_meta') or {}
+    assert meta.get('triage_kind') == 'chat'
 
 
 def test_assistant_nasilsin_goes_chat_mode():
@@ -169,6 +181,21 @@ def test_assistant_weather_question_goes_chat_not_unclear():
     assert payload.get('triage', {}).get('kind') == 'chat'
     assert payload.get('triage', {}).get('reason') == 'chat_pattern'
     assert 'hava durumu' in payload.get('ux', {}).get('summary', '').lower()
+
+
+def test_assistant_nasilsin_goes_chat_not_unclear():
+    p = subprocess.run(
+        [str(CLI), 'assistant', '--message', 'Nasılsın'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr
+    payload = json.loads(p.stdout.strip().splitlines()[-1])
+    assert payload['status'] == 'ok'
+    assert payload['mode'] == 'chat'
+    assert payload.get('triage', {}).get('kind') == 'chat'
+    assert payload.get('triage', {}).get('reason') == 'chat_pattern'
 
 
 def test_assistant_generic_question_goes_chat_question_mode():

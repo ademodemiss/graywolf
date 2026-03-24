@@ -617,6 +617,23 @@ def _orchestration_hint(intent: str | None) -> dict:
     return hint
 
 
+def _assistant_output_contract(*, mode: str, triage: dict, ux: dict, orchestration_hint: dict | None = None, tool_payload_meta: dict | None = None) -> dict:
+    return {
+        'contract_version': 'v1',
+        'mode': mode,
+        'triage': {
+            'kind': (triage or {}).get('kind'),
+            'reason': (triage or {}).get('reason'),
+        },
+        'response': {
+            'summary': (ux or {}).get('summary', ''),
+            'next_step': (ux or {}).get('next_step', ''),
+        },
+        'orchestration': orchestration_hint or {},
+        'tool_payload_meta': tool_payload_meta or {},
+    }
+
+
 def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
     text = (message or '').strip()
     if not text:
@@ -628,14 +645,22 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
         'intent': parsed.get('intent', 'execute'),
         'confidence': float(parsed.get('confidence', 0.2)),
         'provider': 'heuristic',
+        'trace': {
+            'llm_attempted': False,
+            'llm_parsed': False,
+            'llm_used': False,
+            'fallback_reason': 'heuristic_default',
+        },
     }
 
     if os.getenv('GW_ASSISTANT_LLM', '1').strip().lower() in {'0', 'false', 'off', 'no'}:
+        inferred['trace']['fallback_reason'] = 'llm_disabled'
         return inferred
 
     try:
         from core.llm_router import LLMRouter
 
+        inferred['trace']['llm_attempted'] = True
         llm = LLMRouter().get()
         prompt = (
             'Aşağıdaki kullanıcı mesajından kısa bir uygulanabilir goal çıkar. '
@@ -647,6 +672,7 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
         if isinstance(raw, str):
             data = _extract_json_dict(raw)
             if isinstance(data, dict):
+                inferred['trace']['llm_parsed'] = True
                 llm_goal = str(data.get('goal', '')).strip()
                 llm_intent = _normalize_intent(data.get('intent'), inferred['intent'])
                 try:
@@ -661,8 +687,16 @@ def _infer_goal_with_llm(message: str, context_blob: str = '') -> dict:
                 if llm_goal or llm_intent != parsed.get('intent', 'execute'):
                     inferred['provider'] = 'llm'
                     inferred['confidence'] = max(inferred['confidence'], min(max(llm_confidence, 0.0), 1.0), 0.7)
+                    inferred['trace']['llm_used'] = True
+                    inferred['trace']['fallback_reason'] = ''
+                else:
+                    inferred['trace']['fallback_reason'] = 'llm_not_actionable'
+            else:
+                inferred['trace']['fallback_reason'] = 'llm_parse_failed'
+        else:
+            inferred['trace']['fallback_reason'] = 'llm_non_string'
     except Exception:
-        pass
+        inferred['trace']['fallback_reason'] = 'llm_exception'
 
     return inferred
 
@@ -720,7 +754,16 @@ def _infer_triage_with_llm(message: str, context_blob: str = '') -> dict | None:
 def _normalize_for_match(text: str) -> str:
     base = (text or '').strip().casefold()
     decomposed = unicodedata.normalize('NFKD', base)
-    return ''.join(ch for ch in decomposed if not unicodedata.combining(ch))
+    cleaned = ''.join(ch for ch in decomposed if not unicodedata.combining(ch))
+    tr_map = str.maketrans({
+        'ı': 'i',
+        'ğ': 'g',
+        'ş': 's',
+        'ö': 'o',
+        'ü': 'u',
+        'ç': 'c',
+    })
+    return cleaned.translate(tr_map)
 
 
 def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str]:
@@ -789,6 +832,20 @@ def _triage_message_kind(message: str, context_blob: str = '') -> tuple[str, str
     return 'chat', 'uncertain_clarify'
 
 
+def _build_tool_payload_meta(*, intent: str | None, triage_kind: str | None, session_id: str | None, source: str | None) -> dict:
+    normalized_intent = _normalize_intent(intent, 'execute')
+    route = _orchestration_hint(normalized_intent)
+    return {
+        'intent': normalized_intent,
+        'triage_kind': (triage_kind or ''),
+        'route': route.get('route'),
+        'tool_family': route.get('tool_family'),
+        'risk': route.get('risk'),
+        'session_id': session_id or '',
+        'source': source or '',
+    }
+
+
 def cmd_assistant(args: argparse.Namespace) -> dict:
     message = (args.message or '').strip()
     if not message:
@@ -820,12 +877,15 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             next_step = 'Görev için örnek: `iki sayıyı toplayan script yaz`.'
 
         ux = {'summary': summary, 'next_step': next_step}
+        triage = {'kind': kind, 'reason': triage_reason}
+        tool_payload_meta = _build_tool_payload_meta(intent='chat_command', triage_kind=kind, session_id=args.session_id, source=args.source)
         return {
             'status': 'ok',
             'command': 'assistant',
             'mode': 'chat',
             'message': message,
-            'triage': {'kind': kind, 'reason': triage_reason},
+            'triage': triage,
+            'assistant_output': _assistant_output_contract(mode='chat', triage=triage, ux=ux, tool_payload_meta=tool_payload_meta),
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
                 'used_tokens': context_pack.get('used_tokens'),
@@ -847,6 +907,9 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'summary': f'Goal çıkarıldı ve plan hazır ({len(plan)} adım).',
             'next_step': 'Yürütmek için `graywolf assistant --message "..."` komutunu plan-only olmadan çalıştır.',
         }
+        orchestration_hint = _orchestration_hint(inferred.get('intent'))
+        triage = {'kind': kind, 'reason': triage_reason}
+        tool_payload_meta = _build_tool_payload_meta(intent=inferred.get('intent'), triage_kind=kind, session_id=args.session_id, source=args.source)
         return {
             'status': 'ok',
             'command': 'assistant',
@@ -855,8 +918,9 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
             'goal': goal,
             'intent': inferred.get('intent'),
             'inference': inferred,
-            'orchestration_hint': _orchestration_hint(inferred.get('intent')),
-            'triage': {'kind': kind, 'reason': triage_reason},
+            'orchestration_hint': orchestration_hint,
+            'triage': triage,
+            'assistant_output': _assistant_output_contract(mode='plan_only', triage=triage, ux=ux, orchestration_hint=orchestration_hint, tool_payload_meta=tool_payload_meta),
             'context_budget': {
                 'max_tokens': context_pack.get('max_tokens'),
                 'used_tokens': context_pack.get('used_tokens'),
@@ -890,6 +954,9 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'next_step': 'Onay gerekiyorsa `graywolf approvals` + `graywolf approve <request_id>` ile devam et.' if agent_out.get('status') == 'confirm_required' else 'Detay için trace/final alanlarını inceleyebilirsin.',
     }
 
+    orchestration_hint = _orchestration_hint(inferred.get('intent'))
+    triage = {'kind': kind, 'reason': triage_reason}
+    tool_payload_meta = _build_tool_payload_meta(intent=inferred.get('intent'), triage_kind=kind, session_id=args.session_id, source=args.source)
     return {
         **agent_out,
         'command': 'assistant',
@@ -897,8 +964,9 @@ def cmd_assistant(args: argparse.Namespace) -> dict:
         'goal': goal,
         'intent': inferred.get('intent'),
         'inference': inferred,
-        'orchestration_hint': _orchestration_hint(inferred.get('intent')),
-        'triage': {'kind': kind, 'reason': triage_reason},
+        'orchestration_hint': orchestration_hint,
+        'triage': triage,
+        'assistant_output': _assistant_output_contract(mode='run', triage=triage, ux=ux, orchestration_hint=orchestration_hint, tool_payload_meta=tool_payload_meta),
         'context_budget': {
             'max_tokens': context_pack.get('max_tokens'),
             'used_tokens': context_pack.get('used_tokens'),

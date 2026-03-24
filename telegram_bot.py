@@ -63,6 +63,13 @@ def _run_graywolf(args: list[str]) -> dict:
     }
 
 
+def _sanitize_for_telegram(text: str) -> str:
+    t = (text or '').replace('\r\n', '\n').replace('\r', '\n')
+    # Telegram görünümünü bozabilecek kontrol karakterlerini temizle (newline/tab hariç)
+    t = ''.join(ch for ch in t if ch == '\n' or ch == '\t' or ord(ch) >= 32)
+    return t.strip()
+
+
 def _format_result(res: dict) -> str:
     js = res.get("json") if isinstance(res, dict) else None
     if isinstance(js, dict):
@@ -101,10 +108,11 @@ def _format_result(res: dict) -> str:
             if apr:
                 lines.append(f"approval_request_id: {apr}")
 
-        return "\n".join(lines)
+        return _sanitize_for_telegram("\n".join(lines))
 
     out = res.get("stdout") or res.get("stderr") or "(çıktı yok)"
-    return out.strip() or "(çıktı yok)"
+    out = _sanitize_for_telegram(out)
+    return out or "(çıktı yok)"
 
 
 async def _reply_long(update: Update, text: str) -> None:
